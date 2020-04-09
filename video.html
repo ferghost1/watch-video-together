@@ -23,10 +23,12 @@
 			Link film <input type="text" id="link-video" width="500" value="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4">
 		</div>
 		<div id="url-container"></div>
+		<div id="test1"></div>
+		<div id="test2"></div>
 		<button onclick="makeChannel()" type="button">Create Channel</button>
 	</div>
 
-	<video id="video" width="900" height="450" controls></video>
+	<video id="video" type="video/mp4" playsinline width="900" height="450" controls></video>
 	<script type="text/javascript">
 		var pubnub;
 		var interval;
@@ -60,7 +62,11 @@
 			let video = document.getElementById('video');
 			pubnub.addListener({
 		        message: function(msg) {
+		        	document.getElementById('test1').innerText = msg;
 		        	let hostPlayingTime = msg.message.playingTime + (new Date().getTime() - msg.message.timeStamp) / 1000;
+		        	document.getElementById('test2').innerText = `hostPlayingTime: ${hostPlayingTime} 
+		        		playingTime: ${msg.message.playingTime} 
+		        	`;
 		        	switch (msg.message.type) {
 		        		case 'play':
 		        			video.currentTime = hostPlayingTime;

@@ -72,7 +72,7 @@
 		        	`;
 		        	switch (msg.message.type) {
 		        		case 'play':
-		        			video.currentTime = msg.message.playingTime + 0.1;
+		        			video.currentTime = msg.message.playingTime + 0.3;
 		        			video.play();
 		        			break;
 		        		case 'seeking':
@@ -80,7 +80,7 @@
 		        				makeVideoTag(msg.message.src);
 		        				video = document.getElementById('video');
 		        			}
-		        			if (Math.abs(msg.message.playingTime + 0.1 - video.currentTime) > 2) {
+		        			if (Math.abs(msg.message.playingTime + 0.3 - video.currentTime) > 2) {
 		        				video.currentTime = msg.message.playingTime + 0.1;
 		        			}
 		        			break;

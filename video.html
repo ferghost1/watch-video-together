@@ -64,7 +64,7 @@
 			pubnub.addListener({
 		        message: function(msg) {
 		        	let video = document.getElementById('video');
-		        	let hostPlayingTime = msg.message.playingTime + (new Date().getTime() - msg.message.timeStamp) / 1000;
+		        	let hostPlayingTime = msg.message.playingTime + (Date.now() - msg.message.timeStamp) / 1000;
 		        	document.getElementById('test1').innerText = `
 		        		hostPlayingTime: ${hostPlayingTime}
 		        		msg.message.playingTime: ${msg.message.playingTime} 
@@ -149,7 +149,7 @@
 					message: {
 						type: 'play',
 						playingTime: video.currentTime,
-						timeStamp: new Date().getTime()
+						timeStamp: Date.now()
 					}
 				});
 
@@ -160,7 +160,7 @@
 						message: {
 							type: 'seeking',
 							playingTime: video.currentTime,
-							timeStamp: new Date().getTime(),
+							timeStamp: Date.now(),
 							src: video.currentSrc
 						}
 					});
@@ -183,7 +183,7 @@
 					message: {
 						type: 'seeking',
 						playingTime: video.currentTime,
-						timeStamp: new Date().getTime()
+						timeStamp: Date.now()
 					}
 				})	 	
 			};

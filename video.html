@@ -20,7 +20,7 @@
 			Channel name <input type="text" id="channel" width="500">
 		</div>
 		<div>
-			Link film <input type="text" id="link-video" width="500" value="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4">
+			Link film <input type="text" id="link-video" width="500">
 		</div>
 		<div id="url-container"></div>
 		<button onclick="makeChannel()" type="button">Create Channel</button>
@@ -47,7 +47,8 @@
 				subcribe();
 				document.getElementById('inputs').remove();
 			}
-
+		}
+			
 		// for client
 		function subcribe(){
 			connectServer({
@@ -60,18 +61,10 @@
 			});
 
 			// listener pubnub event
-			let video = document.getElementById('video');
-			let vidContainer = document.getElementById('video-container');
-
 			pubnub.addListener({
 		        message: function(msg) {
-		        	
+		        	let video = document.getElementById('video');
 		        	let hostPlayingTime = msg.message.playingTime + (new Date().getTime() - msg.message.timeStamp) / 1000;
-		        	document.getElementById('test1').innerText = `
-		        		msg.message.type: ${msg.message.type}
-		        		video.src = ${video.src}
-		        	`;
-		        	
 		        	switch (msg.message.type) {
 		        		case 'play':
 		        			video.currentTime = hostPlayingTime;
@@ -79,8 +72,8 @@
 		        			break;
 		        		case 'seeking':
 		        			if (!video.currentSrc) {
-		        				vidContainer.innerText = '';
-		        				vidContainer.appendChild(makeVideoTag(msg.message.src));
+		        				makeVideoTag(msg.message.src);
+		        				video = document.getElementById('video');
 		        			}
 		        			if (Math.abs(hostPlayingTime - video.currentTime) > 1.5) {
 		        				video.currentTime = hostPlayingTime;
@@ -90,11 +83,9 @@
 		        			video.pause();
 		        			break;
 		        		case 'makeChannel':
-		        			vidContainer.innerText = '';
-		        			vidContainer.appendChild(makeVideoTag(msg.message.src));
+		        			makeVideoTag(msg.message.src);
 		        			break;
 		        	}
-		        	document.getElementById('test2').innerText = `video.src after: ${video.src} `;
 		        }
 		    });
 		}
@@ -123,7 +114,7 @@
 				let host = location.href.replace(location.search, '');
 				let link = `${host}?pubKey=${pubnubConfig.pubKey}&subKey=${pubnubConfig.subKey}&channel=${document.getElementById('channel').value}`;
 				document.getElementById('url-container').innerText = link;
-				document.getElementById('video').src = linkVideo;
+				makeVideoTag(linkVideo);
 
 				// save config
 				localStorage.setItem('pubKey', pubnubConfig.pubKey);
@@ -131,18 +122,23 @@
 				localStorage.setItem('uuid', pubnubConfig.uuid);
 				localStorage.setItem('channel', channel);
 				localStorage.setItem('linkVideo', linkVideo);
+
+				// add event for video
+				addHostEvent(channel);
 			}
 
 			pubnub.publish({
 				channel: channel,
 				message: { 
 	                type: 'makeChannel',
-					link: linkVideo
+					src: linkVideo
 	            }
 			}, callback);
+		}
 
-			// Make new video tag and add event on video
-			makeVideoTag();
+		function addHostEvent(channel){
+			// add event for video
+			let video = document.getElementById('video');
 			video.onplay = function() {
 				pubnub.publish({
 					channel: channel,
@@ -161,7 +157,7 @@
 							type: 'seeking',
 							playingTime: video.currentTime,
 							timeStamp: new Date().getTime(),
-							src: video.src
+							src: video.currentSrc
 						}
 					});
 				}, 5000);
@@ -201,10 +197,9 @@
 			source.setAttribute('src', src);
 			source.setAttribute('type', 'video/mp4');
 			video.appendChild(source);
+			vidContainer.innerText = '';
 			vidContainer.appendChild(video);
 		}
-
-		functino
 	</script>
 </body>
 

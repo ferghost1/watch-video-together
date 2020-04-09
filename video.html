@@ -3,7 +3,7 @@
 <head>
 	<title>Fim cho heo</title>
 	<script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.27.4.js"></script>
-	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.min.js"></script>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
 </head>
 <body>
 </html>
@@ -65,14 +65,14 @@
 			pubnub.addListener({
 		        message: function(msg) {
 		        	let video = document.getElementById('video');
-		        	let hostPlayingTime = msg.message.playingTime + (moment.now() - msg.message.timeStamp) / 1000;
+		        	let hostPlayingTime = msg.message.playingTime + 0.1;
 		        	document.getElementById('test1').innerText = `
 		        		hostPlayingTime: ${hostPlayingTime}
 		        		msg.message.playingTime: ${msg.message.playingTime} 
 		        	`;
 		        	switch (msg.message.type) {
 		        		case 'play':
-		        			video.currentTime = hostPlayingTime;
+		        			video.currentTime = msg.message.playingTime + 0.1;
 		        			video.play();
 		        			break;
 		        		case 'seeking':
@@ -80,8 +80,8 @@
 		        				makeVideoTag(msg.message.src);
 		        				video = document.getElementById('video');
 		        			}
-		        			if (Math.abs(hostPlayingTime - video.currentTime) > 1.5) {
-		        				video.currentTime = hostPlayingTime;
+		        			if (Math.abs(msg.message.playingTime + 0.1 - video.currentTime) > 2) {
+		        				video.currentTime = msg.message.playingTime + 0.1;
 		        			}
 		        			break;
 		        		case 'pause':
@@ -149,8 +149,7 @@
 					channel: channel,
 					message: {
 						type: 'play',
-						playingTime: video.currentTime,
-						timeStamp: moment.now()
+						playingTime: video.currentTime
 					}
 				});
 
@@ -161,7 +160,6 @@
 						message: {
 							type: 'seeking',
 							playingTime: video.currentTime,
-							timeStamp: moment.now(),
 							src: video.currentSrc
 						}
 					});
@@ -183,8 +181,7 @@
 					channel: channel,
 					message: {
 						type: 'seeking',
-						playingTime: video.currentTime,
-						timeStamp: moment.now()
+						playingTime: video.currentTime
 					}
 				})	 	
 			};

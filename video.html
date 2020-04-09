@@ -65,14 +65,14 @@
 			pubnub.addListener({
 		        message: function(msg) {
 		        	let video = document.getElementById('video');
-		        	let hostPlayingTime = msg.message.playingTime + 0.1;
+		        	let hostPlayingTime = msg.message.playingTime + 0.3;
 		        	document.getElementById('test1').innerText = `
 		        		hostPlayingTime: ${hostPlayingTime}
 		        		video.currentTime: ${video.currentTime} 
 		        	`;
 		        	switch (msg.message.type) {
 		        		case 'play':
-		        			video.currentTime = msg.message.playingTime + 0.3;
+		        			video.currentTime = hostPlayingTime;
 		        			video.play();
 		        			break;
 		        		case 'seeking':
@@ -80,8 +80,8 @@
 		        				makeVideoTag(msg.message.src);
 		        				video = document.getElementById('video');
 		        			}
-		        			if (Math.abs(msg.message.playingTime + 0.3 - video.currentTime) > 2) {
-		        				video.currentTime = msg.message.playingTime + 0.1;
+		        			if (Math.abs(hostPlayingTime - video.currentTime) > 2) {
+		        				video.currentTime = hostPlayingTime;
 		        			}
 		        			break;
 		        		case 'pause':

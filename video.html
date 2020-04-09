@@ -65,7 +65,7 @@
 			pubnub.addListener({
 		        message: function(msg) {
 		        	let video = document.getElementById('video');
-		        	let hostPlayingTime = msg.message.playingTime + 0.3;
+		        	let hostPlayingTime = msg.message.playingTime + 0.5;
 		        	document.getElementById('test1').innerText = `
 		        		hostPlayingTime: ${hostPlayingTime}
 		        		video.currentTime: ${video.currentTime} 

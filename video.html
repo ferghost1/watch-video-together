@@ -3,6 +3,7 @@
 <head>
 	<title>Fim cho heo</title>
 	<script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.27.4.js"></script>
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
 </head>
 <body>
 </html>
@@ -64,7 +65,7 @@
 			pubnub.addListener({
 		        message: function(msg) {
 		        	let video = document.getElementById('video');
-		        	let hostPlayingTime = msg.message.playingTime + (Date.now() - msg.message.timeStamp) / 1000;
+		        	let hostPlayingTime = msg.message.playingTime + (moment.now() - msg.message.timeStamp) / 1000;
 		        	document.getElementById('test1').innerText = `
 		        		hostPlayingTime: ${hostPlayingTime}
 		        		msg.message.playingTime: ${msg.message.playingTime} 
@@ -149,7 +150,7 @@
 					message: {
 						type: 'play',
 						playingTime: video.currentTime,
-						timeStamp: Date.now()
+						timeStamp: moment.now()
 					}
 				});
 
@@ -160,7 +161,7 @@
 						message: {
 							type: 'seeking',
 							playingTime: video.currentTime,
-							timeStamp: Date.now(),
+							timeStamp: moment.now(),
 							src: video.currentSrc
 						}
 					});
@@ -183,7 +184,7 @@
 					message: {
 						type: 'seeking',
 						playingTime: video.currentTime,
-						timeStamp: Date.now()
+						timeStamp: moment.now()
 					}
 				})	 	
 			};

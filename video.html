@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Fim cho heo</title>
+	<script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.27.4.js"></script>
+</head>
+<body>
+</html>
+	<div id="inputs">
+		<div>
+			Pub key <input type="text" id="pubKey" width="500">
+		</div>
+		<div>
+			Sub key <input type="text" id="subKey" width="500">
+		</div>
+		<div>
+			Uuid <input type="text" id="uuid" width="500">
+		</div>
+		<div>
+			Channel name <input type="text" id="channel" width="500">
+		</div>
+		<div>
+			Link film <input type="text" id="link-video" width="500" value="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4">
+		</div>
+		<div id="url-container"></div>
+		<button onclick="makeChannel()" type="button">Create Channel</button>
+	</div>
+
+	<video id="video" width="900" height="450" controls></video>
+	<script type="text/javascript">
+		var pubnub;
+		var interval;
+		const queryStr = new URLSearchParams(window.location.search);
+		init();
+		function init() {
+			if (queryStr.get('host')) { // for host
+				 // Get pubnub config
+				 document.getElementById('pubKey').value = localStorage.getItem('pubKey');
+				 document.getElementById('subKey').value = localStorage.getItem('subKey');
+				 document.getElementById('uuid').value = localStorage.getItem('uuid') || Math.random().toString(36);
+				 document.getElementById('channel').value = localStorage.getItem('channel') || Math.random().toString(36);
+				 document.getElementById('link-video').value = localStorage.getItem('linkVideo') || 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+			} else { // for client
+				subcribe();
+				document.getElementById('inputs').remove();
+			}
+
+		// for client
+		function subcribe(){
+			connectServer({
+				pubKey: queryStr.get('pubKey'),
+				subKey: queryStr.get('subKey'),
+				uuid: queryStr.get('uuid')
+			});
+			pubnub.subscribe({
+				channels: [queryStr.get('channel')]
+			});
+
+			// listener pubnub event
+			let video = document.getElementById('video');
+			pubnub.addListener({
+		        message: function(msg) {
+		        	let hostPlayingTime = msg.message.playingTime + (new Date().getTime() - msg.message.timeStamp) / 1000;
+		        	switch (msg.message.type) {
+		        		case 'play':
+		        			video.currentTime = hostPlayingTime;
+		        			video.play();
+		        			break;
+		        		case 'seeking':
+		        			if (!video.src) {
+		        				video.src = msg.message.src
+		        			}
+		        			if (Math.abs(hostPlayingTime - video.currentTime) > 1.5) {
+		        				video.currentTime = hostPlayingTime;
+		        			}
+		        			break;
+		        		case 'pause':
+		        			video.pause();
+		        			break;
+		        		case 'makeChannel':
+		        			video.src = msg.message.link;
+		        			break;
+		        	}
+		        }
+		    });
+		}
+		}
+
+		function connectServer(data) {
+			pubnub = new PubNub({
+		        publishKey : data.pubKey,
+		        subscribeKey : data.subKey,
+		        uuid: data.uuid
+    		});
+		}
+
+		function makeChannel() {
+			let channel = document.getElementById('channel').value;
+			let linkVideo = document.getElementById('link-video').value;
+			let pubnubConfig = {
+				pubKey: document.getElementById('pubKey').value,
+				subKey: document.getElementById('subKey').value,
+				uuid: document.getElementById('uuid').value
+			} 
+			connectServer(pubnubConfig);
+
+			// Make new channel or change link video
+			let callback = function(status, response) {
+				// generate  link for client
+				let host = location.href.replace(location.search, '');
+				let link = `${host}?pubKey=${pubnubConfig.pubKey}&subKey=${pubnubConfig.subKey}&channel=${document.getElementById('channel').value}`;
+				document.getElementById('url-container').innerText = link;
+				document.getElementById('video').src = linkVideo;
+
+				// save config
+				localStorage.setItem('pubKey', pubnubConfig.pubKey);
+				localStorage.setItem('subKey', pubnubConfig.subKey);
+				localStorage.setItem('uuid', pubnubConfig.uuid);
+				localStorage.setItem('channel', channel);
+				localStorage.setItem('linkVideo', linkVideo);
+			}
+
+			pubnub.publish({
+				channel: channel,
+				message: { 
+	                type: 'makeChannel',
+					link: linkVideo
+	            }
+			}, callback);
+
+			// Add event on video
+			let video = document.getElementById('video');
+			video.onplay = function() {
+				pubnub.publish({
+					channel: channel,
+					message: {
+						type: 'play',
+						playingTime: video.currentTime,
+						timeStamp: new Date().getTime()
+					}
+				});
+
+				// sync video every 5s
+				interval = setInterval(() => {
+					pubnub.publish({
+						channel: channel,
+						message: {
+							type: 'seeking',
+							playingTime: video.currentTime,
+							timeStamp: new Date().getTime(),
+							src: video.src
+						}
+					});
+				}, 5000);
+			};
+
+			video.onpause = function() {
+				pubnub.publish({
+					channel: channel,
+					message: {
+						type: 'pause'
+					}
+				});
+				clearInterval(interval);
+			};
+
+			video.onseeking = function() {
+				pubnub.publish({
+					channel: channel,
+					message: {
+						type: 'seeking',
+						playingTime: video.currentTime,
+						timeStamp: new Date().getTime()
+					}
+				})	 	
+			};
+		}
+	</script>
+</body>
+

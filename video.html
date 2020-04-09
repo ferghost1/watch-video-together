@@ -65,6 +65,10 @@
 		        message: function(msg) {
 		        	let video = document.getElementById('video');
 		        	let hostPlayingTime = msg.message.playingTime + (new Date().getTime() - msg.message.timeStamp) / 1000;
+		        	document.getElementById('test1').innerText = `
+		        		hostPlayingTime: ${hostPlayingTime}
+		        		msg.message.playingTime: ${msg.message.playingTime}
+		        	`;
 		        	switch (msg.message.type) {
 		        		case 'play':
 		        			video.currentTime = hostPlayingTime;

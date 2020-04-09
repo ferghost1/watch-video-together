@@ -27,12 +27,9 @@
 	</div>
 	<div id="test1"></div>
 	<div id="test2"></div>
-
-	<video id="video" type="video/mp4" playsinline width="900" height="450" controls>
-		<source src="https://ucff88111550310255eeb7967c64.dl.dropboxusercontent.com/cd/0/get/A1gF8yUiiYSRmSQbfotkDbXXpa7rA4jLP3_Mc7_3XbZXcYzn1dzOZ7foJYa5j4bu2xgtidtvMtafZZSCHC0vulwsbAp54b32nOI501SMKbwPzPSXskHYrXLrEhDrzbEt5S8/file" type="video/mp4">
-	</video>
-	<video id="video" type="video/mp4" playsinline width="900" height="450" src="https://ucff88111550310255eeb7967c64.dl.dropboxusercontent.com/cd/0/get/A1gF8yUiiYSRmSQbfotkDbXXpa7rA4jLP3_Mc7_3XbZXcYzn1dzOZ7foJYa5j4bu2xgtidtvMtafZZSCHC0vulwsbAp54b32nOI501SMKbwPzPSXskHYrXLrEhDrzbEt5S8/file" controls>
-	</video>
+	<div id="video-container">
+		<video id="video" type="video/mp4" playsinline width="900" height="450" controls></video>
+	</div>
 	<script type="text/javascript">
 		var pubnub;
 		var interval;
@@ -64,6 +61,8 @@
 
 			// listener pubnub event
 			let video = document.getElementById('video');
+			let vidContainer = document.getElementById('video-container');
+
 			pubnub.addListener({
 		        message: function(msg) {
 		        	
@@ -79,8 +78,9 @@
 		        			video.play();
 		        			break;
 		        		case 'seeking':
-		        			if (!video.src) {
-		        				video.src = msg.message.src;
+		        			if (!video.currentSrc) {
+		        				vidContainer.innerText = '';
+		        				vidContainer.appendChild(makeVideoTag(msg.message.src));
 		        			}
 		        			if (Math.abs(hostPlayingTime - video.currentTime) > 1.5) {
 		        				video.currentTime = hostPlayingTime;
@@ -90,13 +90,13 @@
 		        			video.pause();
 		        			break;
 		        		case 'makeChannel':
-		        			video.src = msg.message.link;
+		        			vidContainer.innerText = '';
+		        			vidContainer.appendChild(makeVideoTag(msg.message.src));
 		        			break;
 		        	}
 		        	document.getElementById('test2').innerText = `video.src after: ${video.src} `;
 		        }
 		    });
-		}
 		}
 
 		function connectServer(data) {
@@ -141,8 +141,8 @@
 	            }
 			}, callback);
 
-			// Add event on video
-			let video = document.getElementById('video');
+			// Make new video tag and add event on video
+			makeVideoTag();
 			video.onplay = function() {
 				pubnub.publish({
 					channel: channel,
@@ -188,6 +188,23 @@
 				})	 	
 			};
 		}
+
+		function makeVideoTag (src) {
+			let vidContainer = document.getElementById('video-container');
+			let video = document.createElement('video');
+			let source = document.createElement('source');
+			video.setAttribute('id', 'video');
+			video.setAttribute('controls', true);
+			video.setAttribute('width', 600);
+			video.setAttribute('height', 450);
+			video.setAttribute('playsinline', true);
+			source.setAttribute('src', src);
+			source.setAttribute('type', 'video/mp4');
+			video.appendChild(source);
+			vidContainer.appendChild(video);
+		}
+
+		functino
 	</script>
 </body>
 

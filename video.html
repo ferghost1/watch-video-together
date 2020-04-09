@@ -62,11 +62,14 @@
 			let video = document.getElementById('video');
 			pubnub.addListener({
 		        message: function(msg) {
-		        	document.getElementById('test1').innerText = msg;
+		        	
 		        	let hostPlayingTime = msg.message.playingTime + (new Date().getTime() - msg.message.timeStamp) / 1000;
-		        	document.getElementById('test2').innerText = `hostPlayingTime: ${hostPlayingTime} 
-		        		playingTime: ${msg.message.playingTime} 
+		        	document.getElementById('test1').innerText = `
+		        		msg.message.type: ${msg.message.type}
+		        		video.src = ${video.src}
 		        	`;
+		        	
+		        	document.getElementById('test1').innerText = ``;
 		        	switch (msg.message.type) {
 		        		case 'play':
 		        			video.currentTime = hostPlayingTime;
@@ -74,7 +77,7 @@
 		        			break;
 		        		case 'seeking':
 		        			if (!video.src) {
-		        				video.src = msg.message.src
+		        				video.src = msg.message.src;
 		        			}
 		        			if (Math.abs(hostPlayingTime - video.currentTime) > 1.5) {
 		        				video.currentTime = hostPlayingTime;
@@ -87,6 +90,7 @@
 		        			video.src = msg.message.link;
 		        			break;
 		        	}
+		        	document.getElementById('test2').innerText = `video.src after: ${video.src} `;
 		        }
 		    });
 		}

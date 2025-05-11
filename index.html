@@ -97,24 +97,34 @@
           message: function (msg) {
             let video = document.getElementById("video");
             let hostPlayingTime = msg.message.playingTime + 0.5;
+
             document.getElementById("test1").innerText = `
              		hostPlayingTime: ${hostPlayingTime}
              		video.currentTime: ${video.currentTime}
              	`;
             switch (msg.message.type) {
               case "play":
+                if (!video.currentSrc) {
+                  makeVideoTag(msg.message.src);
+                  video = document.getElementById("video");
+                }
                 video.currentTime = hostPlayingTime;
                 video.play();
                 break;
-              case "seeking":
+              //   case "seeking":
+              //     if (!video.currentSrc) {
+              //       makeVideoTag(msg.message.src);
+              //       video = document.getElementById("video");
+              //     }
+
+              //     video.currentTime = hostPlayingTime;
+              //     break;
+              case "pause":
                 if (!video.currentSrc) {
                   makeVideoTag(msg.message.src);
                   video = document.getElementById("video");
                 }
 
-                video.currentTime = hostPlayingTime;
-                break;
-              case "pause":
                 video.pause();
                 break;
               case "makeChannel":
@@ -144,7 +154,7 @@
         connectServer(pubnubConfig);
 
         // Make new channel or change link video
-        let callback = function (status, response) {
+        let handleMakeChannelSuccess = function (status, response) {
           // generate  link for client
           let host = location.href.replace(location.search, "");
           let link = `${host}?pubKey=${pubnubConfig.pubKey}&subKey=${
@@ -174,7 +184,7 @@
               src: linkVideo,
             },
           },
-          callback
+          handleMakeChannelSuccess
         );
       }
 
@@ -189,18 +199,6 @@
               playingTime: video.currentTime,
             },
           });
-
-          // sync video every 5s
-          interval = setInterval(() => {
-            pubnub.publish({
-              channel: channel,
-              message: {
-                type: "seeking",
-                playingTime: video.currentTime,
-                src: video.currentSrc,
-              },
-            });
-          }, 5000);
         };
 
         video.onpause = function () {
@@ -208,22 +206,22 @@
             channel: channel,
             message: {
               type: "pause",
-            },
-          });
-          clearInterval(interval);
-        };
-
-        video.onseeking = function () {
-          pubnub.publish({
-            channel: channel,
-            message: {
-              type: "seeking",
               playingTime: video.currentTime,
             },
           });
         };
+
+        // video.onseeking = function () {
+        //   pubnub.publish({
+        //     channel: channel,
+        //     message: {
+        //       type: "seeking",
+        //       playingTime: video.currentTime,
+        //     },
+        //   });
+        // };
       }
-      //https://s5.phim1280.tv/20250121/0Ul19iJS/2000kb/hls/index.m3u8
+
       function makeVideoTag(src) {
         let vidContainer = document.getElementById("video-container");
         vidContainer.innerText = "";

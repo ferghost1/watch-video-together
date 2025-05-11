@@ -1,207 +1,253 @@
-<!DOCTYPE html>
 <html>
-<head>
-	<title>Fim cho heo</title>
-	<script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.27.4.js"></script>
-	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
-</head>
-<body>
+  <head>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.27.4.js"></script>
+    <script
+      type="text/javascript"
+      src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"
+    ></script>
+  </head>
+
+  <body>
+    <div id="host-inputs">
+      <div>Pub key <input type="text" id="pubKey" width="500" /></div>
+      <div>Sub key <input type="text" id="subKey" width="500" /></div>
+      <div>Uuid <input type="text" id="uuid" width="500" /></div>
+      <div>Channel name <input type="text" id="channel" width="500" /></div>
+      <div>Link film <input type="text" id="link-video" width="500" /></div>
+      <div id="url-container"></div>
+
+      <button id="create-channel-button" onclick="makeChannel()" type="button">
+        Create Channel
+      </button>
+    </div>
+
+    <div id="subscriber">
+      <button
+        id="subscribe-button"
+        onclick="handleSubscribeClick()"
+        type="button"
+      >
+        Subscribe
+      </button>
+      <div id="subscribed-info"></div>
+    </div>
+
+    <div id="test1"></div>
+    <div id="test2"></div>
+    <div id="video-container">
+      <video
+        id="video"
+        type="video/mp4"
+        playsinline
+        width="900"
+        height="450"
+        controls
+      ></video>
+    </div>
+
+    <script type="text/javascript">
+      var pubnub;
+      var interval;
+      const queryStr = new URLSearchParams(window.location.search);
+      init();
+
+      function init() {
+        if (queryStr.get("host")) {
+          // for host
+          // Get pubnub config
+          document.getElementById("pubKey").value =
+            localStorage.getItem("pubKey");
+          document.getElementById("subKey").value =
+            localStorage.getItem("subKey");
+          document.getElementById("uuid").value =
+            localStorage.getItem("uuid") || Math.random().toString(36);
+          document.getElementById("channel").value =
+            localStorage.getItem("channel") || Math.random().toString(36);
+          document.getElementById("link-video").value =
+            localStorage.getItem("linkVideo") ||
+            "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+
+          document.getElementById("subscriber").remove();
+        } else {
+          // for client
+          subcribe();
+          document.getElementById("host-inputs").remove();
+        }
+      }
+
+      function handleSubscribeClick() {
+        console.log(`clicked`);
+      }
+      // for client
+      function subcribe() {
+        // makeVideoTag(queryStr.link);
+
+        connectServer({
+          pubKey: queryStr.get("pubKey"),
+          subKey: queryStr.get("subKey"),
+          uuid: queryStr.get("uuid"),
+        });
+        pubnub.subscribe({
+          channels: [queryStr.get("channel")],
+        });
+
+        // listener pubnub event
+        pubnub.addListener({
+          message: function (msg) {
+            let video = document.getElementById("video");
+            let hostPlayingTime = msg.message.playingTime + 0.5;
+            document.getElementById("test1").innerText = `
+             		hostPlayingTime: ${hostPlayingTime}
+             		video.currentTime: ${video.currentTime}
+             	`;
+            switch (msg.message.type) {
+              case "play":
+                video.currentTime = hostPlayingTime;
+                video.play();
+                break;
+              case "seeking":
+                if (!video.currentSrc) {
+                  makeVideoTag(msg.message.src);
+                  video = document.getElementById("video");
+                }
+
+                video.currentTime = hostPlayingTime;
+                break;
+              case "pause":
+                video.pause();
+                break;
+              case "makeChannel":
+                makeVideoTag(msg.message.src);
+                break;
+            }
+          },
+        });
+      }
+
+      function connectServer(data) {
+        pubnub = new PubNub({
+          publishKey: data.pubKey,
+          subscribeKey: data.subKey,
+          uuid: data.uuid,
+        });
+      }
+
+      function makeChannel() {
+        let channel = document.getElementById("channel").value;
+        let linkVideo = document.getElementById("link-video").value;
+        let pubnubConfig = {
+          pubKey: document.getElementById("pubKey").value,
+          subKey: document.getElementById("subKey").value,
+          uuid: document.getElementById("uuid").value,
+        };
+        connectServer(pubnubConfig);
+
+        // Make new channel or change link video
+        let callback = function (status, response) {
+          // generate  link for client
+          let host = location.href.replace(location.search, "");
+          let link = `${host}?pubKey=${pubnubConfig.pubKey}&subKey=${
+            pubnubConfig.subKey
+          }&channel=${
+            document.getElementById("channel").value
+          }&link=${linkVideo}`;
+          document.getElementById("url-container").innerText = link;
+          makeVideoTag(linkVideo);
+
+          // save config
+          localStorage.setItem("pubKey", pubnubConfig.pubKey);
+          localStorage.setItem("subKey", pubnubConfig.subKey);
+          localStorage.setItem("uuid", pubnubConfig.uuid);
+          localStorage.setItem("channel", channel);
+          localStorage.setItem("linkVideo", linkVideo);
+
+          // add event for video
+          addHostEvent(channel);
+        };
+
+        pubnub.publish(
+          {
+            channel: channel,
+            message: {
+              type: "makeChannel",
+              src: linkVideo,
+            },
+          },
+          callback
+        );
+      }
+
+      function addHostEvent(channel) {
+        // add event for video
+        let video = document.getElementById("video");
+        video.onplay = function () {
+          pubnub.publish({
+            channel: channel,
+            message: {
+              type: "play",
+              playingTime: video.currentTime,
+            },
+          });
+
+          // sync video every 5s
+          interval = setInterval(() => {
+            pubnub.publish({
+              channel: channel,
+              message: {
+                type: "seeking",
+                playingTime: video.currentTime,
+                src: video.currentSrc,
+              },
+            });
+          }, 5000);
+        };
+
+        video.onpause = function () {
+          pubnub.publish({
+            channel: channel,
+            message: {
+              type: "pause",
+            },
+          });
+          clearInterval(interval);
+        };
+
+        video.onseeking = function () {
+          pubnub.publish({
+            channel: channel,
+            message: {
+              type: "seeking",
+              playingTime: video.currentTime,
+            },
+          });
+        };
+      }
+      //https://s5.phim1280.tv/20250121/0Ul19iJS/2000kb/hls/index.m3u8
+      function makeVideoTag(src) {
+        let vidContainer = document.getElementById("video-container");
+        vidContainer.innerText = "";
+        let video = document.createElement("video");
+        // let source = document.createElement("source");
+        video.setAttribute("id", "video");
+        video.setAttribute("controls", true);
+        video.setAttribute("width", 600);
+        video.setAttribute("height", 450);
+        video.setAttribute("playsinline", true);
+        // source.setAttribute("src", src);
+        // source.setAttribute("type", "video/mp4");
+        // video.appendChild(source);
+
+        vidContainer.appendChild(video);
+
+        if (Hls.isSupported()) {
+          var hls = new Hls();
+          hls.loadSource(src);
+          hls.attachMedia(video);
+        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+          video.src = src;
+        }
+      }
+    </script>
+  </body>
 </html>
-	<div id="inputs">
-		<div>
-			Pub key <input type="text" id="pubKey" width="500">
-		</div>
-		<div>
-			Sub key <input type="text" id="subKey" width="500">
-		</div>
-		<div>
-			Uuid <input type="text" id="uuid" width="500">
-		</div>
-		<div>
-			Channel name <input type="text" id="channel" width="500">
-		</div>
-		<div>
-			Link film <input type="text" id="link-video" width="500">
-		</div>
-		<div id="url-container"></div>
-		<button onclick="makeChannel()" type="button">Create Channel</button>
-	</div>
-	<div id="test1"></div>
-	<div id="test2"></div>
-	<div id="video-container">
-		<video id="video" type="video/mp4" playsinline width="900" height="450" controls></video>
-	</div>
-	<script type="text/javascript">
-		var pubnub;
-		var interval;
-		const queryStr = new URLSearchParams(window.location.search);
-		init();
-		function init() {
-			if (queryStr.get('host')) { // for host
-				 // Get pubnub config
-				 document.getElementById('pubKey').value = localStorage.getItem('pubKey');
-				 document.getElementById('subKey').value = localStorage.getItem('subKey');
-				 document.getElementById('uuid').value = localStorage.getItem('uuid') || Math.random().toString(36);
-				 document.getElementById('channel').value = localStorage.getItem('channel') || Math.random().toString(36);
-				 document.getElementById('link-video').value = localStorage.getItem('linkVideo') || 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-			} else { // for client
-				subcribe();
-				document.getElementById('inputs').remove();
-			}
-		}
-			
-		// for client
-		function subcribe(){
-			connectServer({
-				pubKey: queryStr.get('pubKey'),
-				subKey: queryStr.get('subKey'),
-				uuid: queryStr.get('uuid')
-			});
-			pubnub.subscribe({
-				channels: [queryStr.get('channel')]
-			});
-
-			// listener pubnub event
-			pubnub.addListener({
-		        message: function(msg) {
-		        	let video = document.getElementById('video');
-		        	let hostPlayingTime = msg.message.playingTime + 0.5;
-		        	document.getElementById('test1').innerText = `
-		        		hostPlayingTime: ${hostPlayingTime}
-		        		video.currentTime: ${video.currentTime} 
-		        	`;
-		        	switch (msg.message.type) {
-		        		case 'play':
-		        			video.currentTime = hostPlayingTime;
-		        			video.play();
-		        			break;
-		        		case 'seeking':
-		        			if (!video.currentSrc) {
-		        				makeVideoTag(msg.message.src);
-		        				video = document.getElementById('video');
-		        			}
-		        			if (Math.abs(hostPlayingTime - video.currentTime) > 2) {
-		        				video.currentTime = hostPlayingTime;
-		        			}
-		        			break;
-		        		case 'pause':
-		        			video.pause();
-		        			break;
-		        		case 'makeChannel':
-		        			makeVideoTag(msg.message.src);
-		        			break;
-		        	}
-		        }
-		    });
-		}
-
-		function connectServer(data) {
-			pubnub = new PubNub({
-		        publishKey : data.pubKey,
-		        subscribeKey : data.subKey,
-		        uuid: data.uuid
-    		});
-		}
-
-		function makeChannel() {
-			let channel = document.getElementById('channel').value;
-			let linkVideo = document.getElementById('link-video').value;
-			let pubnubConfig = {
-				pubKey: document.getElementById('pubKey').value,
-				subKey: document.getElementById('subKey').value,
-				uuid: document.getElementById('uuid').value
-			} 
-			connectServer(pubnubConfig);
-
-			// Make new channel or change link video
-			let callback = function(status, response) {
-				// generate  link for client
-				let host = location.href.replace(location.search, '');
-				let link = `${host}?pubKey=${pubnubConfig.pubKey}&subKey=${pubnubConfig.subKey}&channel=${document.getElementById('channel').value}`;
-				document.getElementById('url-container').innerText = link;
-				makeVideoTag(linkVideo);
-
-				// save config
-				localStorage.setItem('pubKey', pubnubConfig.pubKey);
-				localStorage.setItem('subKey', pubnubConfig.subKey);
-				localStorage.setItem('uuid', pubnubConfig.uuid);
-				localStorage.setItem('channel', channel);
-				localStorage.setItem('linkVideo', linkVideo);
-
-				// add event for video
-				addHostEvent(channel);
-			}
-
-			pubnub.publish({
-				channel: channel,
-				message: { 
-	                type: 'makeChannel',
-					src: linkVideo
-	            }
-			}, callback);
-		}
-
-		function addHostEvent(channel){
-			// add event for video
-			let video = document.getElementById('video');
-			video.onplay = function() {
-				pubnub.publish({
-					channel: channel,
-					message: {
-						type: 'play',
-						playingTime: video.currentTime
-					}
-				});
-
-				// sync video every 5s
-				interval = setInterval(() => {
-					pubnub.publish({
-						channel: channel,
-						message: {
-							type: 'seeking',
-							playingTime: video.currentTime,
-							src: video.currentSrc
-						}
-					});
-				}, 5000);
-			};
-
-			video.onpause = function() {
-				pubnub.publish({
-					channel: channel,
-					message: {
-						type: 'pause'
-					}
-				});
-				clearInterval(interval);
-			};
-
-			video.onseeking = function() {
-				pubnub.publish({
-					channel: channel,
-					message: {
-						type: 'seeking',
-						playingTime: video.currentTime
-					}
-				})	 	
-			};
-		}
-
-		function makeVideoTag (src) {
-			let vidContainer = document.getElementById('video-container');
-			let video = document.createElement('video');
-			let source = document.createElement('source');
-			video.setAttribute('id', 'video');
-			video.setAttribute('controls', true);
-			video.setAttribute('width', 600);
-			video.setAttribute('height', 450);
-			video.setAttribute('playsinline', true);
-			source.setAttribute('src', src);
-			source.setAttribute('type', 'video/mp4');
-			video.appendChild(source);
-			vidContainer.innerText = '';
-			vidContainer.appendChild(video);
-		}
-	</script>
-</body>
-

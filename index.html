@@ -269,13 +269,19 @@
         video.setAttribute("height", 450);
         video.setAttribute("playsinline", true);
         vidContainer.appendChild(video);
-console.log(`src.endsWith("m3u8") && Hls.isSupported()`, src.endsWith("m3u8") , Hls.isSupported())
+
         if (src.endsWith("m3u8") && Hls.isSupported()) {
           var hls = new Hls();
           hls.loadSource(src);
           hls.attachMedia(video);
         } else {
-          video.src = src;
+          const source = document.createElement("source");
+          source.src = src; // replace with your actual video file URL
+          source.type = "video/mp4";
+          video.appendChild(source);
+          video.load();
+
+          // video.src = src;
         }
       }
     </script>

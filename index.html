@@ -136,7 +136,15 @@
           return;
         }
 
-        makeVideoTag(document.getElementById("link-video").value);
+        const inputSrc = document.getElementById("link-video").value;
+        const src = inputSrc.includes("qnguyen-dev.work")
+          ? inputSrc.replace(
+              "https://video.qnguyen-dev.work",
+              "http://localhost:8888"
+            )
+          : inputSrc;
+
+        makeVideoTag(src);
         addHostEvent();
       }
 

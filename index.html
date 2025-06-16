@@ -159,7 +159,7 @@
           },
         });
       }
-
+      let subscribed = false;
       function handleSubscribeClick() {
         connectServer({
           pubKey: queryStr.get("pubKey"),
@@ -167,11 +167,16 @@
           uuid: queryStr.get("uuid"),
         });
 
+        pubnub.unsubscribeAll();
         pubnub.subscribe({
           channels: [queryStr.get("channel")],
         });
 
         // listener pubnub event
+        if (subscribed) {
+          return;
+        }
+
         pubnub.addListener({
           message: function (msg) {
             let video = document.getElementById("video");
@@ -214,6 +219,7 @@
             }
           },
         });
+        subscribed = true;
       }
 
       function addHostEvent() {
@@ -266,6 +272,16 @@
         };
       }
 
+      const hls = Hls.isSupported()
+        ? new Hls({
+            maxMaxBufferLength: 60, // Allow 1.5 minutes of buffer
+            maxBufferLength: 60, // Set buffer retention to 1.5 minutes
+            startFragPrefetch: true,
+            fragLoadingMaxRetry: 10,
+            fragLoadingRetryDelay: 1000,
+          })
+        : null;
+
       function makeVideoTag(src) {
         const vidContainer = document.getElementById("video-container");
         vidContainer.innerText = "";
@@ -278,8 +294,16 @@
         video.setAttribute("playsinline", true);
         vidContainer.appendChild(video);
 
-        if (src.endsWith("m3u8") && Hls.isSupported()) {
-          var hls = new Hls();
+        if (src.endsWith("m3u8") && hls) {
+          hls.detachMedia();
+          //   var hls = new Hls({
+          //     maxMaxBufferLength: 60, // Allow 1.5 minutes of buffer
+          //     maxBufferLength: 60, // Set buffer retention to 1.5 minutes
+          //     startFragPrefetch: true,
+          //     fragLoadingMaxRetry: 10,
+          //     fragLoadingRetryDelay: 1000,
+          //   });
+
           hls.loadSource(src);
           hls.attachMedia(video);
         } else {

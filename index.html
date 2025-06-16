@@ -161,11 +161,13 @@
       }
       let subscribed = false;
       function handleSubscribeClick() {
-        connectServer({
-          pubKey: queryStr.get("pubKey"),
-          subKey: queryStr.get("subKey"),
-          uuid: queryStr.get("uuid"),
-        });
+        if (!pubnub) {
+          connectServer({
+            pubKey: queryStr.get("pubKey"),
+            subKey: queryStr.get("subKey"),
+            uuid: queryStr.get("uuid"),
+          });
+        }
 
         pubnub.unsubscribeAll();
         pubnub.subscribe({

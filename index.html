@@ -149,6 +149,8 @@
         }
 
         const inputSrc = document.getElementById("link-video").value;
+        localStorage.setItem("linkVideo", inputSrc);
+        
         const src = inputSrc.includes("qnguyen-dev.work")
           ? inputSrc.replace(
               "https://video.qnguyen-dev.work",

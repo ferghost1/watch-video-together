@@ -84,11 +84,11 @@
       let subscribed = false;
       const hls = Hls.isSupported()
         ? new Hls({
-            maxMaxBufferLength: 60, // Allow 1.5 minutes of buffer
-            maxBufferLength: 60, // Set buffer retention to 1.5 minutes
+            maxMaxBufferLength: 90, // Allow 1.5 minutes of buffer
+            maxBufferLength: 90, // Set buffer retention to 1.5 minutes
             startFragPrefetch: true,
             fragLoadingMaxRetry: 10,
-            fragLoadingRetryDelay: 1000,
+            fragLoadingRetryDelay: 700,
           })
         : null;
 

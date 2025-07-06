@@ -298,18 +298,11 @@
         video.setAttribute("width", 600);
         video.setAttribute("height", 450);
         video.setAttribute("playsinline", true);
+        video.setAttribute("preload", "auto");
         vidContainer.appendChild(video);
 
         if (src.endsWith("m3u8") && hls) {
           hls.detachMedia();
-          //   var hls = new Hls({
-          //     maxMaxBufferLength: 60, // Allow 1.5 minutes of buffer
-          //     maxBufferLength: 60, // Set buffer retention to 1.5 minutes
-          //     startFragPrefetch: true,
-          //     fragLoadingMaxRetry: 10,
-          //     fragLoadingRetryDelay: 1000,
-          //   });
-
           hls.loadSource(src);
           hls.attachMedia(video);
         } else {
@@ -318,8 +311,6 @@
           source.type = "video/mp4";
           video.appendChild(source);
           video.load();
-
-          // video.src = src;
         }
       }
     </script>

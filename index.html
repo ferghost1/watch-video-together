@@ -18,6 +18,7 @@
       <div>
         <label for="addtional-time">Additional time with host</label>
         <input id="addtional-time" value="0" step="0.5" type="number" />
+        <button id="test-delay" onclick="testDelay()">Test Delay</button>
       </div>
       <div id="url-container"></div>
 
@@ -47,6 +48,10 @@
         Subscribe
       </button>
       <div id="subscribed-info"></div>
+      <div>
+        <span>Test Delay:</span>
+        <span id="delay-value"></span>
+      </div>
     </div>
 
     <div id="video-container">
@@ -106,6 +111,7 @@
         PLAY: "PLAY",
         PAUSE: "PAUSE",
         SEEK: "SEEK",
+        TEST_DELAY: "TEST_DELAY",
       };
 
       var pubnub;
@@ -246,6 +252,11 @@
             const shouldPlayingTime = hostPlayingTime + transferDuration;
 
             switch (msg.message.type) {
+              case eventType.TEST_DELAY:
+                const delayTime = hostTimestamp - Number(new Date().getTime());
+                document.getElementById("delay-value").innerText =
+                  delayTime / 1000;
+                break;
               case eventType.SYNC_VIDEO:
                 makeVideoTag(msg.message.src);
                 break;
@@ -282,6 +293,16 @@
           },
         });
         subscribed = true;
+      }
+
+      function testDelay() {
+        pubnub.publish({
+          channel,
+          message: {
+            type: eventType.TEST_DELAY,
+            timestamp: new Date().getTime(),
+          },
+        });
       }
 
       function addHostEvent() {

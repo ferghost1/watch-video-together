@@ -77,26 +77,17 @@
 
         async init() {
           const res = await this.getStandardTime();
-          const utcStandardDateTime = res.datetime;
+          const utcStandardDateTime = res.dateTime;
           this.createdAt = new Date().getTime();
-          this.standardUnixTime = new Date(
-            utcStandardDateTime.replace(" ", "T") + "Z"
-          ).getTime();
+          this.standardUnixTime = new Date(utcStandardDateTime + "Z").getTime();
         }
 
         async getStandardTime() {
-          const apiKey = "v0yyOd3X99Lu1+5MIFygtA==0YpfiwM2MviAoylP";
           const timezone = "Etc/UTC";
 
           const standardTimeRes = await new Promise((rs, rj) => {
             fetch(
-              `https://api.api-ninjas.com/v1/worldtime?timezone=${timezone}`,
-              {
-                method: "GET",
-                headers: {
-                  "X-Api-Key": apiKey,
-                },
-              }
+              `https://www.timeapi.io/api/time/current/zone?timeZone=${timezone}`
             )
               .then((response) => {
                 rs(response.json());

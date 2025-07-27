@@ -129,9 +129,6 @@
           this.msDiff = before + arriveTime - res.dateTime;
           document.getElementById("ms-diff").innerText = this.msDiff;
           document.getElementById("request-time").innerText = requestTime;
-          document.getElementById("standard-time").innerText = new Date(
-            res.dateTime
-          ).toISOString();
 
           // console.log(`diff:`, before - res.dateTime);
           // console.log(`server timestamp:`, res.dateTime);
@@ -174,7 +171,7 @@
       let subKey;
       let uuid;
       let standardDate;
-
+      let standardDateInterval;
       const queryStr = new URLSearchParams(window.location.search);
       const isHost = !!queryStr.get("host");
 
@@ -193,6 +190,16 @@
 
       function createStandardDate() {
         standardDate = new StandardDate();
+
+        if (standardDateInterval) {
+          clearInterval(standardDateInterval);
+        }
+
+        standardDateInterval = setInterval(() => {
+          document.getElementById("standard-time").innerText = new Date(
+            standardDate.getCurrentTime()
+          ).toISOString();
+        }, 500);
       }
 
       function init() {

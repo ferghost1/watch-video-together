@@ -112,13 +112,16 @@
     <script type="text/javascript">
       class StandardDate {
         msDiff;
+        createdAt;
+        standardTimestamp;
 
         constructor() {
           this.init();
         }
 
         getCurrentTime() {
-          return new Date().getTime() + this.msDiff;
+          // return new Date().getTime() + this.msDiff;
+          return this.standardTimestamp + new Date().getTime() - this.createdAt;
         }
 
         async init() {
@@ -126,7 +129,10 @@
           const res = await this.getStandardTime();
           const requestTime = new Date().getTime() - before;
           const arriveTime = 30; // assume request go to server take 30ms
+          this.createdAt = new Date().getTime();
+          this.standardTimestamp = res.dateTime + arriveTime;
           this.msDiff = before + arriveTime - res.dateTime;
+
           document.getElementById("ms-diff").innerText = this.msDiff;
           document.getElementById("request-time").innerText = requestTime;
 

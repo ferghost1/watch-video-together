@@ -69,6 +69,11 @@
         <span>Request time:</span>
         <span id="request-time"></span>
       </div>
+
+      <div>
+        <span>Standard time:</span>
+        <span id="standard-time"></span>
+      </div>
     </div>
 
     <div id="test" class="container">
@@ -124,6 +129,9 @@
           this.msDiff = before + arriveTime - res.dateTime;
           document.getElementById("ms-diff").innerText = this.msDiff;
           document.getElementById("request-time").innerText = requestTime;
+          document.getElementById("standard-time").innerText = new Date(
+            res.dateTime
+          ).toISOString();
 
           // console.log(`diff:`, before - res.dateTime);
           // console.log(`server timestamp:`, res.dateTime);

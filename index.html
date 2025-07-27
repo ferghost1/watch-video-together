@@ -54,6 +54,20 @@
       </div>
     </div>
 
+    <div id="standart-time-controller">
+      <button onclick="createStandardDate()">Fetch Standard Date</button>
+      <div>
+        <span>Milisecond Different:</span>
+        <span id="ms-diff"></span>
+      </div>
+
+      <div>
+        <span>Request time:</span>
+        <span id="request-time"></span>
+      </div>
+    </div>
+    <br />
+
     <div id="video-container">
       <video
         id="video"
@@ -67,37 +81,29 @@
 
     <script type="text/javascript">
       class StandardDate {
-        createdAt;
-        standardUnixTime;
+        msDiff;
 
         constructor() {
           this.init();
         }
 
         getCurrentTime() {
-          return (
-            this.standardUnixTime + (new Date().getTime() - this.createdAt)
-          );
+          return new Date().getTime() + this.msDiff;
         }
 
         async init() {
+          const before = new Date().getTime();
           const res = await this.getStandardTime();
-          this.createdAt = new Date().getTime();
-          this.standardUnixTime = res.dateTime;
+          const requestTime = new Date().getTime() - before;
+          this.msDiff = new Date().getTime() - res.dateTime - requestTime / 2;
+          document.getElementById("ms-diff").innerText = this.msDiff;
+          document.getElementById("request-time").innerText = requestTime;
         }
-
-        // async init() {
-        //   const res = await this.getStandardTime();
-        //   const utcStandardDateTime = res.dateTime;
-        //   this.createdAt = new Date().getTime();
-        //   this.standardUnixTime = new Date(utcStandardDateTime + "Z").getTime();
-        // }
 
         async getStandardTime() {
           const timezone = "Etc/UTC";
 
           const standardTimeRes = await new Promise((rs, rj) => {
-            //https://www.timeapi.io/api/time/current/zone?timeZone=${timezone}
             fetch(`https://sweet-dream-63fe.qnguyen-play.workers.dev`)
               .then((response) => {
                 rs(response.json());
@@ -146,8 +152,12 @@
 
       init();
 
-      function init() {
+      function createStandardDate() {
         standardDate = new StandardDate();
+      }
+
+      function init() {
+        createStandardDate();
 
         if (isHost) {
           document.getElementById("pubKey").value =
@@ -373,7 +383,7 @@
         video.setAttribute("id", "video");
         video.setAttribute("controls", true);
         video.setAttribute("width", 600);
-        video.setAttribute("height", 450);
+        video.setAttribute("height", 300);
         video.setAttribute("playsinline", true);
         video.setAttribute("preload", "auto");
         video.setAttribute("crossorigin", "anonymous");

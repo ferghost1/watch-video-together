@@ -82,10 +82,16 @@
 
         async init() {
           const res = await this.getStandardTime();
-          const utcStandardDateTime = res.dateTime;
           this.createdAt = new Date().getTime();
-          this.standardUnixTime = new Date(utcStandardDateTime + "Z").getTime();
+          this.standardUnixTime = res.dateTime;
         }
+
+        // async init() {
+        //   const res = await this.getStandardTime();
+        //   const utcStandardDateTime = res.dateTime;
+        //   this.createdAt = new Date().getTime();
+        //   this.standardUnixTime = new Date(utcStandardDateTime + "Z").getTime();
+        // }
 
         async getStandardTime() {
           const timezone = "Etc/UTC";

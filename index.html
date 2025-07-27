@@ -71,6 +71,28 @@
       </div>
     </div>
 
+    <div id="test" class="container">
+      <div>
+        <span>Host video time:</span>
+        <span id="host-video-time"></span>
+      </div>
+
+      <div>
+        <span>Host local Timestamp:</span>
+        <span id="host-local-time"></span>
+      </div>
+
+      <div>
+        <span>Host standard time:</span>
+        <span id="host-standard-time"></span>
+      </div>
+
+      <div>
+        <span>Subscriber standard time:</span>
+        <span id="subscriber-standard-time"></span>
+      </div>
+    </div>
+
     <div id="video-container" class="container">
       <video
         id="video"
@@ -271,6 +293,7 @@
             let video = document.getElementById("video");
             let hostPlayingTime = msg.message.playingTime; // in second
             const hostTimestamp = msg.message.timestamp;
+            const hostLocalTimestamp = msg.message.localTimestamp;
             const transferDuration = hostTimestamp
               ? (standardDate.getCurrentTime() - hostTimestamp) / 1000
               : 0;
@@ -310,6 +333,16 @@
                   console.log(`Missing video tag`);
                   break;
                 }
+
+                document.getElementById("host-video-time").innerText =
+                  hostPlayingTime;
+                document.getElementById("host-local-time").innerText = new Date(
+                  hostLocalTimestamp
+                ).toISOString();
+                document.getElementById("host-standard-time").innerText =
+                  new Date(hostTimestamp).toISOString();
+                document.getElementById("subscriber-standard-time").innerText =
+                  new Date(standardDate.getCurrentTime()).toISOString();
 
                 video.currentTime = shouldPlayingTime;
                 video.pause();
@@ -363,6 +396,7 @@
             message: {
               type: eventType.PAUSE,
               playingTime,
+              localTimestamp: new Date().getTime(),
               timestamp: standardDate.getCurrentTime(),
             },
           });

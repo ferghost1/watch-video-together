@@ -7,9 +7,14 @@
       src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"
     ></script>
   </head>
+  <style>
+    .container {
+      margin-bottom: 20px;
+    }
+  </style>
 
   <body>
-    <div id="host-inputs">
+    <div id="host-inputs" class="container">
       <div>Pub key <input type="text" id="pubKey" width="500" /></div>
       <div>Sub key <input type="text" id="subKey" width="500" /></div>
       <div>Uuid <input type="text" id="uuid" width="500" /></div>
@@ -37,9 +42,7 @@
       </button>
     </div>
 
-    <br />
-
-    <div id="subscriber-inputs">
+    <div id="subscriber-inputs" class="container">
       <button
         id="subscribe-button"
         onclick="handleSubscribeClick()"
@@ -48,13 +51,14 @@
         Subscribe
       </button>
       <div id="subscribed-info"></div>
+      <br />
       <div>
         <span>Test Delay:</span>
         <span id="delay-value"></span>
       </div>
     </div>
 
-    <div id="standart-time-controller">
+    <div id="standart-time-container" class="container">
       <button onclick="createStandardDate()">Fetch Standard Date</button>
       <div>
         <span>Milisecond Different:</span>
@@ -66,9 +70,8 @@
         <span id="request-time"></span>
       </div>
     </div>
-    <br />
 
-    <div id="video-container">
+    <div id="video-container" class="container">
       <video
         id="video"
         type="video/mp4"
@@ -95,9 +98,15 @@
           const before = new Date().getTime();
           const res = await this.getStandardTime();
           const requestTime = new Date().getTime() - before;
-          this.msDiff = new Date().getTime() - res.dateTime - requestTime / 2;
+          const arriveTime = 30; // assume request go to server take 30ms
+          this.msDiff = before + arriveTime - res.dateTime;
           document.getElementById("ms-diff").innerText = this.msDiff;
           document.getElementById("request-time").innerText = requestTime;
+
+          // console.log(`diff:`, before - res.dateTime);
+          // console.log(`server timestamp:`, res.dateTime);
+          // console.log(`before timestamp:`, before);
+          // console.log(`local  timestamp:`, new Date().getTime());
         }
 
         async getStandardTime() {

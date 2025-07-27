@@ -17,7 +17,7 @@
       <div>Link film <input type="text" id="link-video" width="500" /></div>
       <div>
         <label for="addtional-time">Additional time with host</label>
-        <input id="addtional-time" value="0.5" type="number" />
+        <input id="addtional-time" value="0" step="0.5" type="number" />
       </div>
       <div id="url-container"></div>
 
@@ -61,6 +61,55 @@
     </div>
 
     <script type="text/javascript">
+      class StandardDate {
+        createdAt;
+        standardUnixTime;
+
+        constructor() {
+          this.init();
+        }
+
+        getCurrentTime() {
+          return (
+            this.standardUnixTime + (new Date().getTime() - this.createdAt)
+          );
+        }
+
+        async init() {
+          const res = await this.getStandardTime();
+          const utcStandardDateTime = res.datetime;
+          this.createdAt = new Date().getTime();
+          this.standardUnixTime = new Date(
+            utcStandardDateTime.replace(" ", "T") + "Z"
+          ).getTime();
+        }
+
+        async getStandardTime() {
+          const apiKey = "v0yyOd3X99Lu1+5MIFygtA==0YpfiwM2MviAoylP";
+          const timezone = "Etc/UTC";
+
+          const standardTimeRes = await new Promise((rs, rj) => {
+            fetch(
+              `https://api.api-ninjas.com/v1/worldtime?timezone=${timezone}`,
+              {
+                method: "GET",
+                headers: {
+                  "X-Api-Key": apiKey,
+                },
+              }
+            )
+              .then((response) => {
+                rs(response.json());
+              })
+              .catch((err) => {
+                throw err;
+              });
+          });
+
+          return standardTimeRes;
+        }
+      }
+
       const eventType = {
         MAKE_CHANNEL: "MAKE_CHANNEL",
         SYNC_VIDEO: "SYNC_VIDEO",
@@ -77,6 +126,7 @@
       let pubKey;
       let subKey;
       let uuid;
+      let standardDate;
 
       const queryStr = new URLSearchParams(window.location.search);
       const isHost = !!queryStr.get("host");
@@ -95,6 +145,8 @@
       init();
 
       function init() {
+        standardDate = new StandardDate();
+
         if (isHost) {
           document.getElementById("pubKey").value =
             localStorage.getItem("pubKey");
@@ -196,9 +248,15 @@
         pubnub.addListener({
           message: function (msg) {
             let video = document.getElementById("video");
-            let hostPlayingTime = msg.message.playingTime;
+            let hostPlayingTime = msg.message.playingTime; // in second
+            const hostTimestamp = msg.message.timestamp;
+            const transferDuration = hostTimestamp
+              ? (standardDate.getCurrentTime() - hostTimestamp) / 1000
+              : 0;
+            const shouldPlayingTime = hostPlayingTime + transferDuration;
 
-            console.log(video);
+            console.log(`hostTimestamp`, hostTimestamp);
+            console.log(`transferDuration`, transferDuration);
             switch (msg.message.type) {
               case eventType.SYNC_VIDEO:
                 makeVideoTag(msg.message.src);
@@ -210,7 +268,7 @@
                   break;
                 }
 
-                video.currentTime = hostPlayingTime;
+                video.currentTime = shouldPlayingTime;
                 video.play();
                 break;
 
@@ -220,7 +278,7 @@
                   break;
                 }
 
-                video.currentTime = hostPlayingTime;
+                video.currentTime = shouldPlayingTime;
                 break;
 
               case eventType.PAUSE:
@@ -229,7 +287,7 @@
                   break;
                 }
 
-                video.currentTime = hostPlayingTime;
+                video.currentTime = shouldPlayingTime;
                 video.pause();
                 break;
             }
@@ -255,11 +313,13 @@
             message: {
               type: eventType.PLAY,
               playingTime,
+              timestamp: standardDate.getCurrentTime(),
             },
           });
         };
 
         video.onpause = function () {
+          // in second decimal format: 22.54361
           const playingTime =
             video.currentTime +
             Number(document.getElementById("addtional-time").value || 0);
@@ -269,6 +329,7 @@
             message: {
               type: eventType.PAUSE,
               playingTime,
+              timestamp: standardDate.getCurrentTime(),
             },
           });
         };
@@ -283,6 +344,7 @@
             message: {
               type: eventType.SEEK,
               playingTime,
+              timestamp: standardDate.getCurrentTime(),
             },
           });
         };

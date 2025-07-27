@@ -391,6 +391,13 @@
             video.currentTime +
             Number(document.getElementById("addtional-time").value || 0);
 
+          document.getElementById("host-video-time").innerText = playingTime;
+          document.getElementById("host-local-time").innerText =
+            new Date().toISOString();
+          document.getElementById("host-standard-time").innerText = new Date(
+            standardDate.getCurrentTime()
+          ).toISOString();
+
           pubnub.publish({
             channel: channel,
             message: {

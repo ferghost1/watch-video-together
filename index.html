@@ -197,15 +197,12 @@
       function createStandardDate() {
         standardDate = new StandardDate();
 
-        if (standardDateInterval) {
-          clearInterval(standardDateInterval);
-        }
-
-        standardDateInterval = setInterval(() => {
-          document.getElementById("standard-time").innerText = new Date(
-            standardDate.getCurrentTime()
-          ).toISOString();
-        }, 500);
+        // clearInterval(standardDateInterval);
+        // standardDateInterval = setInterval(() => {
+        //   document.getElementById("standard-time").innerText = new Date(
+        //     standardDate.getCurrentTime()
+        //   ).toISOString();
+        // }, 500);
       }
 
       function init() {

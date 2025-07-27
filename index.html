@@ -86,9 +86,8 @@
           const timezone = "Etc/UTC";
 
           const standardTimeRes = await new Promise((rs, rj) => {
-            fetch(
-              `https://www.timeapi.io/api/time/current/zone?timeZone=${timezone}`
-            )
+            //https://www.timeapi.io/api/time/current/zone?timeZone=${timezone}
+            fetch(`https://sweet-dream-63fe.qnguyen-play.workers.dev`)
               .then((response) => {
                 rs(response.json());
               })
@@ -246,8 +245,6 @@
               : 0;
             const shouldPlayingTime = hostPlayingTime + transferDuration;
 
-            console.log(`hostTimestamp`, hostTimestamp);
-            console.log(`transferDuration`, transferDuration);
             switch (msg.message.type) {
               case eventType.SYNC_VIDEO:
                 makeVideoTag(msg.message.src);

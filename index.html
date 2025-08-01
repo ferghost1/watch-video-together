@@ -83,27 +83,7 @@
       </div>
     </div>
 
-    <div id="test" class="container">
-      <div>
-        <span>Host video time:</span>
-        <span id="host-video-time"></span>
-      </div>
-
-      <div>
-        <span>Host local Timestamp:</span>
-        <span id="host-local-time"></span>
-      </div>
-
-      <div>
-        <span>Host standard time:</span>
-        <span id="host-standard-time"></span>
-      </div>
-
-      <div>
-        <span>Subscriber standard time:</span>
-        <span id="subscriber-standard-time"></span>
-      </div>
-    </div>
+    <div id="test" class="container"></div>
 
     <div id="video-container" class="container">
       <video
@@ -317,14 +297,11 @@
             let hostPlayingTime = msg.message.playingTime; // in second
             const hostTimestamp = msg.message.timestamp;
             const hostLocalTimestamp = msg.message.localTimestamp;
-            const transferDuration =
-              (new Date().getTime() - hostLocalTimestamp + diffTime) / 1000;
-            const shouldPlayingTime = hostPlayingTime + transferDuration;
-            console.log(`hostLocalTimestamp`, hostLocalTimestamp);
-            console.log(`currentTimestamp`, new Date().getTime());
-            console.log(`hostPlayingTime`, hostPlayingTime);
-            console.log(`shouldPlayingTime`, shouldPlayingTime);
-            console.log(`diffTime`, diffTime);
+            const adjustFollowHostTimestamp = new Date().getTime() + diffTime;
+            const transferedTime =
+              (adjustFollowHostTimestamp - hostLocalTimestamp) / 1000;
+
+            const shouldPlayingTime = hostPlayingTime + transferedTime;
 
             switch (msg.message.type) {
               case eventType.TEST_DELAY:
@@ -353,7 +330,9 @@
                   break;
                 }
 
-                video.currentTime = shouldPlayingTime;
+                video.currentTime = video.paused
+                  ? hostPlayingTime
+                  : shouldPlayingTime;
                 break;
 
               case eventType.PAUSE:
@@ -362,13 +341,12 @@
                   break;
                 }
 
-                video.currentTime = shouldPlayingTime;
+                video.currentTime = hostPlayingTime;
                 video.pause();
                 break;
 
               case eventType.SET_DIFF_TIME:
                 diffTime = msg.message.diffTime ?? 0;
-                console.log(`diffTime`, diffTime);
                 break;
             }
           },

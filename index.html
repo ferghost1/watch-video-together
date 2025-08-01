@@ -25,6 +25,13 @@
         <input id="addtional-time" value="0" step="0.5" type="number" />
         <button id="test-delay" onclick="testDelay()">Test Delay</button>
       </div>
+      <div id="diff-time-container" class="container">
+        <label for="diff-time">Diff time</label>
+        <input id="diff-time" value="1000" type="number" />
+        <button id="set-diff-time" onclick="emitSetDiffTime()">
+          Set Diff Time
+        </button>
+      </div>
       <div id="url-container"></div>
 
       <br />
@@ -166,6 +173,7 @@
         PAUSE: "PAUSE",
         SEEK: "SEEK",
         TEST_DELAY: "TEST_DELAY",
+        SET_DIFF_TIME: "SET_DIFF_TIME",
       };
 
       var pubnub;
@@ -178,6 +186,7 @@
       let uuid;
       let standardDate;
       let standardDateInterval;
+      let diffTime;
       const queryStr = new URLSearchParams(window.location.search);
       const isHost = !!queryStr.get("host");
 
@@ -196,13 +205,6 @@
 
       function createStandardDate() {
         standardDate = new StandardDate();
-
-        // clearInterval(standardDateInterval);
-        // standardDateInterval = setInterval(() => {
-        //   document.getElementById("standard-time").innerText = new Date(
-        //     standardDate.getCurrentTime()
-        //   ).toISOString();
-        // }, 500);
       }
 
       function init() {
@@ -220,6 +222,8 @@
           document.getElementById("link-video").value =
             localStorage.getItem("linkVideo") ||
             "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+          document.getElementById("diff-time").value =
+            localStorage.getItem("diffTime") || 1000;
 
           document.getElementById("subscriber-inputs").remove();
         } else {
@@ -277,7 +281,8 @@
 
       function handleSyncVideo() {
         const videoSrc = document.getElementById("link-video").value;
-        console.log(`video`, videoSrc);
+        emitSetDiffTime();
+
         pubnub.publish({
           channel: channel,
           message: {
@@ -312,10 +317,14 @@
             let hostPlayingTime = msg.message.playingTime; // in second
             const hostTimestamp = msg.message.timestamp;
             const hostLocalTimestamp = msg.message.localTimestamp;
-            const transferDuration = hostTimestamp
-              ? (standardDate.getCurrentTime() - hostTimestamp) / 1000
-              : 0;
+            const transferDuration =
+              (new Date().getTime() - hostLocalTimestamp + diffTime) / 1000;
             const shouldPlayingTime = hostPlayingTime + transferDuration;
+            console.log(`hostLocalTimestamp`, hostLocalTimestamp);
+            console.log(`currentTimestamp`, new Date().getTime());
+            console.log(`hostPlayingTime`, hostPlayingTime);
+            console.log(`shouldPlayingTime`, shouldPlayingTime);
+            console.log(`diffTime`, diffTime);
 
             switch (msg.message.type) {
               case eventType.TEST_DELAY:
@@ -334,6 +343,7 @@
                 }
 
                 video.currentTime = shouldPlayingTime;
+
                 video.play();
                 break;
 
@@ -352,18 +362,13 @@
                   break;
                 }
 
-                document.getElementById("host-video-time").innerText =
-                  hostPlayingTime;
-                document.getElementById("host-local-time").innerText = new Date(
-                  hostLocalTimestamp
-                ).toISOString();
-                document.getElementById("host-standard-time").innerText =
-                  new Date(hostTimestamp).toISOString();
-                document.getElementById("subscriber-standard-time").innerText =
-                  new Date(standardDate.getCurrentTime()).toISOString();
-
                 video.currentTime = shouldPlayingTime;
                 video.pause();
+                break;
+
+              case eventType.SET_DIFF_TIME:
+                diffTime = msg.message.diffTime ?? 0;
+                console.log(`diffTime`, diffTime);
                 break;
             }
           },
@@ -377,6 +382,19 @@
           message: {
             type: eventType.TEST_DELAY,
             timestamp: new Date().getTime(),
+          },
+        });
+      }
+
+      function emitSetDiffTime() {
+        const diffTime =
+          Number(document.getElementById("diff-time").value) || 0;
+        localStorage.setItem("diffTime", diffTime);
+        pubnub.publish({
+          channel,
+          message: {
+            type: eventType.SET_DIFF_TIME,
+            diffTime,
           },
         });
       }
@@ -398,6 +416,7 @@
             message: {
               type: eventType.PLAY,
               playingTime,
+              localTimestamp: new Date().getTime(),
               timestamp: standardDate.getCurrentTime(),
             },
           });
@@ -408,13 +427,6 @@
           const playingTime =
             video.currentTime +
             Number(document.getElementById("addtional-time").value || 0);
-
-          document.getElementById("host-video-time").innerText = playingTime;
-          document.getElementById("host-local-time").innerText =
-            new Date().toISOString();
-          document.getElementById("host-standard-time").innerText = new Date(
-            standardDate.getCurrentTime()
-          ).toISOString();
 
           pubnub.publish({
             channel: channel,
@@ -437,6 +449,7 @@
             message: {
               type: eventType.SEEK,
               playingTime,
+              localTimestamp: new Date().getTime(),
               timestamp: standardDate.getCurrentTime(),
             },
           });
@@ -455,6 +468,7 @@
         video.setAttribute("playsinline", true);
         video.setAttribute("preload", "auto");
         video.setAttribute("crossorigin", "anonymous");
+        video.muted = true;
 
         vidContainer.appendChild(video);
 

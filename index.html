@@ -248,12 +248,14 @@
         const inputSrc = document.getElementById("link-video").value;
         localStorage.setItem("linkVideo", inputSrc);
 
-        const src = inputSrc.includes("qnguyen-dev.work")
-          ? inputSrc.replace(
-              "https://video.qnguyen-dev.work",
-              "http://localhost:8888"
-            )
-          : inputSrc;
+        let src = inputSrc;
+        const inputSrcOrigin = new URL(inputSrc).origin;
+        if (
+          inputSrcOrigin.includes(`qnguyen-dev.work`) ||
+          inputSrcOrigin.includes(`devtunnels.ms`)
+        ) {
+          src = inputSrc.replace(inputSrcOrigin, "http://localhost:8889");
+        }
 
         makeVideoTag(src);
         addHostEvent();

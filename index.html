@@ -158,7 +158,6 @@
               Connect success!
               `;
 
-            this.handleHeartBeat();
             this.handleAddEvent();
           };
         }
@@ -182,16 +181,6 @@
                 break;
             }
           };
-        }
-
-        handleHeartBeat() {
-          this.intervalPing = setInterval(
-            () =>
-              this.wsConn.send(
-                JSON.stringify({ type: this.wsAction.HEART_BEAT })
-              ),
-            320000
-          );
         }
 
         syncServerTimestamp() {

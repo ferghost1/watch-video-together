@@ -375,7 +375,7 @@
                 hostStandardTimestamp) /
               1000;
 
-            const shouldPlayingTime = hostPlayingTime + (transferedTime ?? 0);
+            const shouldPlayingTime = hostPlayingTime + (transferedTime || 0);
 
             switch (msg.message.type) {
               case eventType.TEST_DELAY:

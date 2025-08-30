@@ -427,6 +427,8 @@
                 hostUrl = msg.message.hostUrl;
                 console.log(`hostUrl`, hostUrl);
                 localStorage.setItem("hostUrl", hostUrl);
+                createStandardDate();
+
                 document.getElementById(
                   "test"
                 ).innerText = `host url: ${hostUrl}`;

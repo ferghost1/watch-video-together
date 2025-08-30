@@ -355,7 +355,7 @@
       function handleSyncVideo() {
         const videoSrc = document.getElementById("link-video").value;
         emitSetDiffTime();
-        emitHostUrl();
+        emitSyncServerTimestamp();
 
         pubnub.publish({
           channel: channel,

@@ -118,9 +118,13 @@
 
       class WsConnection {
         wsUrl = "wss://wbxpc2b1-8889.asse.devtunnels.ms";
-        wsAction = { SYNC_SERVER_TIMESTAMP: "SYNC_SERVER_TIMESTAMP" };
+        wsAction = {
+          SYNC_SERVER_TIMESTAMP: "SYNC_SERVER_TIMESTAMP",
+          HEART_BEAT: "HEART_BEAT",
+        };
         wsConn;
         retryTime = 0;
+        intervalPing = 0;
 
         constructor() {
           this.init();
@@ -146,16 +150,6 @@
           this.wsConn.onclose = (e) => {
             console.log(`e.code, e.reason`, e.code, e.reason);
             console.log(`e`, e);
-          };
-
-          this.wsConn.onclose = (event) => {
-            if (event.target.readyState === WebSocket.CLOSED) {
-              document.getElementById("action").innerText = `
-              Connect fail ${++this.retryTime} time, reconnecting!
-              `;
-
-              this.connect();
-            }
           };
 
           this.wsConn.onopen = (msg) => {
@@ -186,6 +180,16 @@
                 break;
             }
           };
+        }
+
+        handleHeartBeat() {
+          this.intervalPing = setInterval(
+            () =>
+              this.wsConn.send(
+                JSON.stringify({ type: this.wsAction.HEART_BEAT })
+              ),
+            10000
+          );
         }
 
         syncServerTimestamp() {

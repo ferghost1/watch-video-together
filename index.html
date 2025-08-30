@@ -145,6 +145,21 @@
             }
           };
 
+          this.wsConn.onclose = (e) => {
+            console.log(`e.code, e.reason`, e.code, e.reason);
+            console.log(`e`, e);
+          };
+
+          this.wsConn.onclose = (event) => {
+            if (event.target.readyState === WebSocket.CLOSED) {
+              document.getElementById("action").innerText = `
+              Connect fail ${++this.retryTime} time, reconnecting!
+              `;
+
+              this.connect();
+            }
+          };
+
           this.wsConn.onopen = (msg) => {
             console.log(`open`, msg);
             document.getElementById("action").innerText = `

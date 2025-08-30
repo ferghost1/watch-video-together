@@ -528,21 +528,20 @@
         };
 
         video.onpause = function () {
-          console.log(`on paused`);
           // in second decimal format: 22.54361
-          // const playingTime =
-          //   video.currentTime +
-          //   Number(document.getElementById("addtional-time").value || 0);
+          const playingTime =
+            video.currentTime +
+            Number(document.getElementById("addtional-time").value || 0);
 
-          // pubnub.publish({
-          //   channel: channel,
-          //   message: {
-          //     type: eventType.PAUSE,
-          //     playingTime,
-          //     localTimestamp: Date.now(),
-          //     timestamp: standardDate.getCurrentTime(),
-          //   },
-          // });
+          pubnub.publish({
+            channel: channel,
+            message: {
+              type: eventType.PAUSE,
+              playingTime,
+              localTimestamp: Date.now(),
+              timestamp: standardDate.getCurrentTime(),
+            },
+          });
         };
 
         video.onseeking = function () {

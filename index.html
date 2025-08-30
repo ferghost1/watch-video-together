@@ -19,7 +19,9 @@
       <div>Sub key <input type="text" id="subKey" width="500" /></div>
       <div>Uuid <input type="text" id="uuid" width="500" /></div>
       <div>Channel name <input type="text" id="channel" width="500" /></div>
-      <div>Link film <input type="text" id="link-video" width="500" /></div>
+      <div>
+        Link film <input type="text" id="link-video" style="width: 500px" />
+      </div>
       <div>
         <label for="addtional-time">Additional time with host</label>
         <input id="addtional-time" value="0" step="0.5" type="number" />
@@ -32,6 +34,12 @@
           Set Diff Time
         </button>
       </div>
+      <div>
+        Host url:
+        <input type="text" id="host-url" style="width: 500px" />
+        <button id="set-host-url" onclick="emitHostUrl()">Set Host URL</button>
+      </div>
+
       <div id="url-container"></div>
 
       <br />
@@ -46,6 +54,10 @@
 
       <button id="sync-video" onclick="handleSyncVideo()" type="button">
         Sync Video
+      </button>
+
+      <button id="sync-timestamp" onclick="emitHostTimestamp()" type="button">
+        Sync timestamp
       </button>
     </div>
 
@@ -68,8 +80,8 @@
     <div id="standart-time-container" class="container">
       <button onclick="createStandardDate()">Fetch Standard Date</button>
       <div>
-        <span>Milisecond Different:</span>
-        <span id="ms-diff"></span>
+        <span>Milisecond Greater Than Server:</span>
+        <span id="time-greater-than-server"></span>
       </div>
 
       <div>
@@ -98,51 +110,77 @@
 
     <script type="text/javascript">
       class StandardDate {
-        msDiff;
-        createdAt;
-        standardTimestamp;
+        msDiff = 0;
+        createdAt = Date.now();
+        standardTimestamp = Date.now();
+        estimatedResponseTime = 80; // assume time from server response to client
+        localGreaterStandardInMs = 0;
+        timestampUrl;
+        greaterTimeUrl;
+        isUseLocal;
 
-        constructor() {
+        constructor({ timestampUrl, greaterTimeUrl, isUseLocal }) {
+          this.timestampUrl = timestampUrl;
+          this.greaterTimeUrl = greaterTimeUrl;
+          this.isUseLocal = isUseLocal;
           this.init();
         }
 
-        getCurrentTime() {
-          // return new Date().getTime() + this.msDiff;
-          return this.standardTimestamp + new Date().getTime() - this.createdAt;
-        }
-
         async init() {
-          const before = new Date().getTime();
-          const res = await this.getStandardTime();
-          const requestTime = new Date().getTime() - before;
-          const arriveTime = 30; // assume request go to server take 30ms
-          this.createdAt = new Date().getTime();
-          this.standardTimestamp = res.dateTime + arriveTime;
-          this.msDiff = before + arriveTime - res.dateTime;
+          if (this.isUseLocal) {
+            console.log(`use local timestamp as standard`);
+            return;
+          }
 
-          document.getElementById("ms-diff").innerText = this.msDiff;
-          document.getElementById("request-time").innerText = requestTime;
-
-          // console.log(`diff:`, before - res.dateTime);
-          // console.log(`server timestamp:`, res.dateTime);
-          // console.log(`before timestamp:`, before);
-          // console.log(`local  timestamp:`, new Date().getTime());
+          await this.syncTime();
         }
 
-        async getStandardTime() {
-          const timezone = "Etc/UTC";
+        //  Get server time at any specific time on local
+        getCurrentTime() {
+          // return this.standardTimestamp + Date.now() - this.createdAt;
+          return Date.now() - this.localGreaterThanStandardInMs;
+        }
 
-          const standardTimeRes = await new Promise((rs, rj) => {
-            fetch(`https://sweet-dream-63fe.qnguyen-play.workers.dev`)
-              .then((response) => {
-                rs(response.json());
-              })
-              .catch((err) => {
-                throw err;
-              });
-          });
+        async getStandardTimestamp() {
+          if (this.timestampUrl) {
+            // const timezone = "Etc/UTC";
+            const res = await fetch(this.timestampUrl);
+            const resData = await res.json();
+            return resData.data.timeStamp;
+          }
 
-          return standardTimeRes;
+          return Date.now();
+        }
+
+        async syncTime() {
+          // const resTimestamp = await this.getStandardTimestamp();
+          const beforeRequestTime = Date.now();
+          const greaterThanServer = await this.getGreaterThanServerTimestamp();
+          const sendTime =
+            Date.now() - beforeRequestTime - this.estimatedResponseTime;
+          this.localGreaterThanStandardInMs = greaterThanServer + sendTime;
+          document.getElementById(`test`).innerText = `
+              local greater: ${Date.now() - this.localGreaterThanStandardInMs}
+              greater than sv: ${greaterThanServer}
+            `;
+
+          document.getElementById("time-greater-than-server").innerText =
+            this.localGreaterThanStandardInMs;
+          document.getElementById("request-time").innerText =
+            Date.now() - beforeRequestTime;
+        }
+
+        async getGreaterThanServerTimestamp() {
+          if (this.greaterTimeUrl) {
+            // const timezone = "Etc/UTC";
+            const res = await fetch(
+              `${this.greaterTimeUrl}?localTimestamp=${Date.now()}`
+            );
+            const resData = await res.json();
+            return resData.data.localGreaterInMs;
+          }
+
+          return 0;
         }
       }
 
@@ -154,6 +192,13 @@
         SEEK: "SEEK",
         TEST_DELAY: "TEST_DELAY",
         SET_DIFF_TIME: "SET_DIFF_TIME",
+        SET_HOST_URL: "SET_HOST_URL",
+        SYNC_HOST_TIMESTAMP: "SYNC_HOST_TIMESTAMP",
+      };
+
+      const hostEndpoint = {
+        GET_TIMESTAMP: "timestamp",
+        GET_GREATER_TIMESTAMP: "timestamp/greater-than-server",
       };
 
       var pubnub;
@@ -167,6 +212,8 @@
       let standardDate;
       let standardDateInterval;
       let diffTime;
+      let hostUrl;
+
       const queryStr = new URLSearchParams(window.location.search);
       const isHost = !!queryStr.get("host");
 
@@ -184,10 +231,15 @@
       init();
 
       function createStandardDate() {
-        standardDate = new StandardDate();
+        standardDate = new StandardDate({
+          // timestampUrl: `${hostUrl}/${hostEndpoint.GET_TIMESTAMP}`,
+          greaterTimeUrl: `${hostUrl}/${hostEndpoint.GET_GREATER_TIMESTAMP}`,
+          isUseLocal: isHost,
+        });
       }
 
       function init() {
+        hostUrl = localStorage.getItem("hostUrl");
         createStandardDate();
 
         if (isHost) {
@@ -204,6 +256,7 @@
             "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
           document.getElementById("diff-time").value =
             localStorage.getItem("diffTime") || 1000;
+          document.getElementById("host-url").value = hostUrl;
 
           document.getElementById("subscriber-inputs").remove();
         } else {
@@ -283,15 +336,16 @@
           });
         }
 
-        pubnub.unsubscribeAll();
-        pubnub.subscribe({
-          channels: [queryStr.get("channel")],
-        });
-
         // listener pubnub event
         if (subscribed) {
           return;
         }
+
+        pubnub.unsubscribeAll();
+        pubnub.subscribe({
+          channels: [queryStr.get("channel")],
+        });
+        document.getElementById(`subscribed-info`).innerText = `subscribed`;
 
         pubnub.addListener({
           message: function (msg) {
@@ -299,7 +353,7 @@
             let hostPlayingTime = msg.message.playingTime; // in second
             const hostTimestamp = msg.message.timestamp;
             const hostLocalTimestamp = msg.message.localTimestamp;
-            const adjustFollowHostTimestamp = new Date().getTime() + diffTime;
+            const adjustFollowHostTimestamp = Date.now() + diffTime;
             const transferedTime =
               (adjustFollowHostTimestamp - hostLocalTimestamp) / 1000;
 
@@ -307,7 +361,7 @@
 
             switch (msg.message.type) {
               case eventType.TEST_DELAY:
-                const delayTime = hostTimestamp - Number(new Date().getTime());
+                const delayTime = hostTimestamp - Number(Date.now());
                 document.getElementById("delay-value").innerText =
                   delayTime / 1000;
                 break;
@@ -350,6 +404,25 @@
               case eventType.SET_DIFF_TIME:
                 diffTime = msg.message.diffTime ?? 0;
                 break;
+
+              case eventType.SET_HOST_URL:
+                hostUrl = msg.message.hostUrl;
+                console.log(`hostUrl`, hostUrl);
+                localStorage.setItem("hostUrl", hostUrl);
+                document.getElementById(
+                  "test"
+                ).innerText = `host url: ${hostUrl}`;
+                break;
+
+              case eventType.SYNC_HOST_TIMESTAMP:
+                const hostTimestamp = msg.message.hostTimestamp;
+                document.getElementById("test").innerText = `
+                  host time: ${hostTimestamp}
+                  local time: ${Date.now()}
+                  greater host: ${Date.now() - hostTimestamp}
+                `;
+
+                break;
             }
           },
         });
@@ -361,7 +434,7 @@
           channel,
           message: {
             type: eventType.TEST_DELAY,
-            timestamp: new Date().getTime(),
+            timestamp: Date.now(),
           },
         });
       }
@@ -377,6 +450,39 @@
             diffTime,
           },
         });
+      }
+
+      function emitHostUrl() {
+        hostUrl = document.getElementById("host-url").value;
+        localStorage.setItem("hostUrl", hostUrl);
+
+        if (pubnub) {
+          pubnub.publish({
+            channel,
+            message: {
+              type: eventType.SET_HOST_URL,
+              hostUrl,
+            },
+          });
+        }
+      }
+
+      function emitHostTimestamp() {
+        const hostTimestamp = Date.now();
+        console.log(`hostTimestamp`, hostTimestamp);
+        document.getElementById(`test`).innerText = `
+          host timestamp: ${hostTimestamp}
+        `;
+
+        if (pubnub) {
+          pubnub.publish({
+            channel,
+            message: {
+              type: eventType.SYNC_HOST_TIMESTAMP,
+              hostTimestamp,
+            },
+          });
+        }
       }
 
       function addHostEvent() {
@@ -396,7 +502,7 @@
             message: {
               type: eventType.PLAY,
               playingTime,
-              localTimestamp: new Date().getTime(),
+              localTimestamp: Date.now(),
               timestamp: standardDate.getCurrentTime(),
             },
           });
@@ -413,7 +519,7 @@
             message: {
               type: eventType.PAUSE,
               playingTime,
-              localTimestamp: new Date().getTime(),
+              localTimestamp: Date.now(),
               timestamp: standardDate.getCurrentTime(),
             },
           });
@@ -429,7 +535,7 @@
             message: {
               type: eventType.SEEK,
               playingTime,
-              localTimestamp: new Date().getTime(),
+              localTimestamp: Date.now(),
               timestamp: standardDate.getCurrentTime(),
             },
           });

@@ -55,10 +55,10 @@
       <button id="sync-video" onclick="handleSyncVideo()" type="button">
         Sync Video
       </button>
-
+      <!-- 
       <button id="sync-timestamp" onclick="emitHostTimestamp()" type="button">
         Sync timestamp
-      </button>
+      </button> -->
     </div>
 
     <div id="subscriber-inputs" class="container">
@@ -158,11 +158,16 @@
           const greaterThanServer = await this.getGreaterThanServerTimestamp();
           const sendTime =
             Date.now() - beforeRequestTime - this.estimatedResponseTime;
-          this.localGreaterThanStandardInMs = greaterThanServer + sendTime;
+          this.localGreaterThanStandardInMs = greaterThanServer
+            ? greaterThanServer + sendTime
+            : 0;
+
           document.getElementById(`test`).innerText = `
-              local greater: ${Date.now() - this.localGreaterThanStandardInMs}
-              greater than sv: ${greaterThanServer}
-            `;
+                    local greater: ${
+                      Date.now() - this.localGreaterThanStandardInMs
+                    }
+                    greater than sv: ${greaterThanServer}
+                  `;
 
           document.getElementById("time-greater-than-server").innerText =
             this.localGreaterThanStandardInMs;
@@ -171,16 +176,20 @@
         }
 
         async getGreaterThanServerTimestamp() {
-          if (this.greaterTimeUrl) {
-            // const timezone = "Etc/UTC";
-            const res = await fetch(
-              `${this.greaterTimeUrl}?localTimestamp=${Date.now()}`
-            );
-            const resData = await res.json();
-            return resData.data.localGreaterInMs;
-          }
+          try {
+            if (this.greaterTimeUrl) {
+              // const timezone = "Etc/UTC";
+              const res = await fetch(
+                `${this.greaterTimeUrl}?localTimestamp=${Date.now()}`
+              );
+              const resData = await res.json();
+              return resData.data.localGreaterInMs;
+            }
 
-          return 0;
+            return 0;
+          } catch (err) {
+            return 0;
+          }
         }
       }
 
@@ -317,6 +326,7 @@
       function handleSyncVideo() {
         const videoSrc = document.getElementById("link-video").value;
         emitSetDiffTime();
+        emitHostUrl();
 
         pubnub.publish({
           channel: channel,
@@ -353,15 +363,19 @@
             let hostPlayingTime = msg.message.playingTime; // in second
             const hostStandardTimestamp = msg.message.standardTimestamp;
             const hostLocalTimestamp = msg.message.localTimestamp;
-            const adjustFollowHostTimestamp = Date.now() + diffTime;
-            const transferedTime =
-              (adjustFollowHostTimestamp - hostLocalTimestamp) / 1000;
-            const shouldPlayingTime = hostPlayingTime + transferedTime;
+            const diffTimeStampWithHostInMs = diffTime ?? 0;
+            // const adjustFollowHostTimestamp = Date.now() + diffTime; // This diffTime = 0 mean disabled
+            // const transferedTime =
+            //   (adjustFollowHostTimestamp - hostLocalTimestamp) / 1000;
+            // const shouldPlayingTime = hostPlayingTime + addtionalInSecond;
 
-            const transferedTimeByStandard =
-              (standardDate.getCurrentTime() - hostStandardTimestamp) / 1000;
-            const shouldPlayingTimeByStandard =
-              hostPlayingTime + transferedTimeByStandard;
+            const transferedTime =
+              (standardDate.getCurrentTime() +
+                diffTimeStampWithHostInMs -
+                hostStandardTimestamp) /
+              1000;
+
+            const shouldPlayingTime = hostPlayingTime + (transferedTime ?? 0);
 
             switch (msg.message.type) {
               case eventType.TEST_DELAY:
@@ -380,8 +394,7 @@
                   break;
                 }
 
-                video.currentTime = shouldPlayingTimeByStandard;
-
+                video.currentTime = shouldPlayingTime;
                 video.play();
                 break;
 
@@ -422,10 +435,10 @@
               case eventType.SYNC_HOST_TIMESTAMP:
                 const hostTimestamp = msg.message.hostTimestamp;
                 document.getElementById("test").innerText = `
-                  host time: ${hostTimestamp}
-                  local time: ${Date.now()}
-                  greater host: ${Date.now() - hostTimestamp}
-                `;
+                        host time: ${hostTimestamp}
+                        local time: ${Date.now()}
+                        greater host: ${Date.now() - hostTimestamp}
+                      `;
 
                 break;
             }
@@ -448,6 +461,7 @@
         const diffTime =
           Number(document.getElementById("diff-time").value) || 0;
         localStorage.setItem("diffTime", diffTime);
+
         pubnub.publish({
           channel,
           message: {
@@ -476,8 +490,8 @@
         const hostTimestamp = Date.now();
         console.log(`hostTimestamp`, hostTimestamp);
         document.getElementById(`test`).innerText = `
-          host timestamp: ${hostTimestamp}
-        `;
+                host timestamp: ${hostTimestamp}
+              `;
 
         if (pubnub) {
           pubnub.publish({

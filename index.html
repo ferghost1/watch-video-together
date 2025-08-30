@@ -137,9 +137,7 @@
           // retry until success
           this.wsConn.onerror = (event) => {
             if (event.target.readyState === WebSocket.CLOSED) {
-              document.getElementById("action").innerText = `
-              Connect fail ${++this.retryTime} time, reconnecting!
-              `;
+              document.getElementById("action").innerText = `Connect closed!`;
 
               this.connect();
             }

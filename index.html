@@ -395,7 +395,7 @@
                 }
 
                 video.currentTime = shouldPlayingTime;
-                video.play();
+                video.play().then((res) => console.log(`res`, res));
                 break;
 
               case eventType.SEEK:

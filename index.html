@@ -114,7 +114,7 @@
         createdAt = Date.now();
         standardTimestamp = Date.now();
         estimatedResponseTime = 80; // assume time from server response to client
-        localGreaterStandardInMs = 0;
+        localGreaterThanStandardInMs = 0;
         timestampUrl;
         greaterTimeUrl;
         isUseLocal;
@@ -351,20 +351,25 @@
           message: function (msg) {
             let video = document.getElementById("video");
             let hostPlayingTime = msg.message.playingTime; // in second
-            const hostTimestamp = msg.message.timestamp;
+            const hostStandardTimestamp = msg.message.standardTimestamp;
             const hostLocalTimestamp = msg.message.localTimestamp;
             const adjustFollowHostTimestamp = Date.now() + diffTime;
             const transferedTime =
               (adjustFollowHostTimestamp - hostLocalTimestamp) / 1000;
-
             const shouldPlayingTime = hostPlayingTime + transferedTime;
+
+            const transferedTimeByStandard =
+              (standardDate.getCurrentTime() - hostStandardTimestamp) / 1000;
+            const shouldPlayingTimeByStandard =
+              hostPlayingTime + transferedTimeByStandard;
 
             switch (msg.message.type) {
               case eventType.TEST_DELAY:
-                const delayTime = hostTimestamp - Number(Date.now());
+                const delayTime = hostStandardTimestamp - Date.now();
                 document.getElementById("delay-value").innerText =
                   delayTime / 1000;
                 break;
+
               case eventType.SYNC_VIDEO:
                 makeVideoTag(msg.message.src);
                 break;
@@ -375,7 +380,7 @@
                   break;
                 }
 
-                video.currentTime = shouldPlayingTime;
+                video.currentTime = shouldPlayingTimeByStandard;
 
                 video.play();
                 break;
@@ -503,7 +508,7 @@
               type: eventType.PLAY,
               playingTime,
               localTimestamp: Date.now(),
-              timestamp: standardDate.getCurrentTime(),
+              standardTimestamp: standardDate.getCurrentTime(),
             },
           });
         };

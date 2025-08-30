@@ -528,6 +528,7 @@
         };
 
         video.onpause = function () {
+          console.log(`on paused`);
           // in second decimal format: 22.54361
           const playingTime =
             video.currentTime +

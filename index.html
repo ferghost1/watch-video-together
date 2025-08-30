@@ -55,10 +55,14 @@
       <button id="sync-video" onclick="handleSyncVideo()" type="button">
         Sync Video
       </button>
-      <!-- 
-      <button id="sync-timestamp" onclick="emitHostTimestamp()" type="button">
+
+      <button
+        id="sync-timestamp"
+        onclick="emitSyncServerTimestamp()"
+        type="button"
+      >
         Sync timestamp
-      </button> -->
+      </button>
     </div>
 
     <div id="subscriber-inputs" class="container">
@@ -96,6 +100,7 @@
     </div>
 
     <div id="test" class="container"></div>
+    <div id="action" class="container"></div>
 
     <div id="video-container" class="container">
       <video
@@ -109,30 +114,99 @@
     </div>
 
     <script type="text/javascript">
+      let serverTimestamp = Date.now();
+
+      class WsConnection {
+        wsUrl = "wss://wbxpc2b1-8889.asse.devtunnels.ms";
+        wsAction = { SYNC_SERVER_TIMESTAMP: "SYNC_SERVER_TIMESTAMP" };
+        wsConn;
+        retryTime = 0;
+
+        constructor() {
+          this.init();
+        }
+
+        async init() {
+          document.getElementById("action").innerText = `Connecting to ws.`;
+          this.connect();
+        }
+
+        async connect() {
+          this.wsConn = new WebSocket("wss://wbxpc2b1-8889.asse.devtunnels.ms");
+
+          // retry until success
+          this.wsConn.onerror = (event) => {
+            if (event.target.readyState === WebSocket.CLOSED) {
+              document.getElementById("action").innerText = `
+              Connect fail ${++this.retryTime} time, reconnecting!
+              `;
+
+              this.connect();
+            }
+          };
+
+          this.wsConn.onopen = (msg) => {
+            console.log(`open`, msg);
+            document.getElementById("action").innerText = `
+              Connect success!
+              `;
+            this.handleAddEvent();
+          };
+        }
+
+        handleAddEvent() {
+          this.wsConn.onmessage = (msg) => {
+            console.log(`msg`, msg);
+            const { action, data } = JSON.parse(msg.data);
+            console.log(`action, data`, action, data);
+            switch (action) {
+              case this.wsAction.SYNC_SERVER_TIMESTAMP:
+                serverTimestamp = data.serverTimestamp;
+                createStandardDate();
+
+                document.getElementById("test").innerText = `
+              greater than sv: ${Date.now() - serverTimestamp}
+            `;
+                break;
+
+              default:
+                break;
+            }
+          };
+        }
+
+        syncServerTimestamp() {
+          if (this.wsConn.readyState !== WebSocket.OPEN) {
+            console.log(`Ws wasn't connected.`);
+          }
+
+          this.wsConn.send(
+            JSON.stringify({ type: this.wsAction.SYNC_SERVER_TIMESTAMP })
+          );
+        }
+      }
+      const wsClient = new WsConnection();
+
       class StandardDate {
-        msDiff = 0;
-        createdAt = Date.now();
-        standardTimestamp = Date.now();
-        estimatedResponseTime = 80; // assume time from server response to client
-        localGreaterThanStandardInMs = 0;
-        timestampUrl;
-        greaterTimeUrl;
+        serverTimestamp;
+        localGreaterThanStandardInMs;
         isUseLocal;
 
-        constructor({ timestampUrl, greaterTimeUrl, isUseLocal }) {
-          this.timestampUrl = timestampUrl;
-          this.greaterTimeUrl = greaterTimeUrl;
+        constructor({ serverTimestamp, isUseLocal }) {
+          this.serverTimestamp = serverTimestamp;
           this.isUseLocal = isUseLocal;
+
           this.init();
         }
 
         async init() {
           if (this.isUseLocal) {
             console.log(`use local timestamp as standard`);
+            this.localGreaterThanStandardInMs = 0;
             return;
           }
 
-          await this.syncTime();
+          this.syncTime();
         }
 
         //  Get server time at any specific time on local
@@ -141,55 +215,11 @@
           return Date.now() - this.localGreaterThanStandardInMs;
         }
 
-        async getStandardTimestamp() {
-          if (this.timestampUrl) {
-            // const timezone = "Etc/UTC";
-            const res = await fetch(this.timestampUrl);
-            const resData = await res.json();
-            return resData.data.timeStamp;
-          }
-
-          return Date.now();
-        }
-
         async syncTime() {
-          // const resTimestamp = await this.getStandardTimestamp();
-          const beforeRequestTime = Date.now();
-          const greaterThanServer = await this.getGreaterThanServerTimestamp();
-          const sendTime =
-            Date.now() - beforeRequestTime - this.estimatedResponseTime;
-          this.localGreaterThanStandardInMs = greaterThanServer
-            ? greaterThanServer + sendTime
-            : 0;
-
-          document.getElementById(`test`).innerText = `
-                    local greater: ${
-                      Date.now() - this.localGreaterThanStandardInMs
-                    }
-                    greater than sv: ${greaterThanServer}
-                  `;
+          this.localGreaterThanStandardInMs = Date.now() - this.serverTimestamp;
 
           document.getElementById("time-greater-than-server").innerText =
             this.localGreaterThanStandardInMs;
-          document.getElementById("request-time").innerText =
-            Date.now() - beforeRequestTime;
-        }
-
-        async getGreaterThanServerTimestamp() {
-          try {
-            if (this.greaterTimeUrl) {
-              // const timezone = "Etc/UTC";
-              const res = await fetch(
-                `${this.greaterTimeUrl}?localTimestamp=${Date.now()}`
-              );
-              const resData = await res.json();
-              return resData.data.localGreaterInMs;
-            }
-
-            return 0;
-          } catch (err) {
-            return 0;
-          }
         }
       }
 
@@ -241,8 +271,7 @@
 
       function createStandardDate() {
         standardDate = new StandardDate({
-          // timestampUrl: `${hostUrl}/${hostEndpoint.GET_TIMESTAMP}`,
-          greaterTimeUrl: `${hostUrl}/${hostEndpoint.GET_GREATER_TIMESTAMP}`,
+          serverTimestamp,
           isUseLocal: isHost,
         });
       }
@@ -423,16 +452,16 @@
                 diffTime = msg.message.diffTime ?? 0;
                 break;
 
-              case eventType.SET_HOST_URL:
-                hostUrl = msg.message.hostUrl;
-                console.log(`hostUrl`, hostUrl);
-                localStorage.setItem("hostUrl", hostUrl);
-                createStandardDate();
+              // case eventType.SET_HOST_URL:
+              //   hostUrl = msg.message.hostUrl;
+              //   console.log(`hostUrl`, hostUrl);
+              //   localStorage.setItem("hostUrl", hostUrl);
+              //   createStandardDate();
 
-                document.getElementById(
-                  "test"
-                ).innerText = `host url: ${hostUrl}`;
-                break;
+              //   document.getElementById(
+              //     "test"
+              //   ).innerText = `host url: ${hostUrl}`;
+              //   break;
 
               case eventType.SYNC_HOST_TIMESTAMP:
                 const hostTimestamp = msg.message.hostTimestamp;
@@ -488,22 +517,8 @@
         }
       }
 
-      function emitHostTimestamp() {
-        const hostTimestamp = Date.now();
-        console.log(`hostTimestamp`, hostTimestamp);
-        document.getElementById(`test`).innerText = `
-                host timestamp: ${hostTimestamp}
-              `;
-
-        if (pubnub) {
-          pubnub.publish({
-            channel,
-            message: {
-              type: eventType.SYNC_HOST_TIMESTAMP,
-              hostTimestamp,
-            },
-          });
-        }
+      function emitSyncServerTimestamp() {
+        wsClient.syncServerTimestamp();
       }
 
       function addHostEvent() {

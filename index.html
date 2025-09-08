@@ -262,6 +262,7 @@
       let standardDateInterval;
       let diffTime;
       let hostUrl;
+      let wsClient;
 
       const queryStr = new URLSearchParams(window.location.search);
       const isHost = !!queryStr.get("host");
@@ -288,7 +289,7 @@
 
       function init() {
         hostUrl = localStorage.getItem("hostUrl");
-        const wsClient = new WsConnection();
+        wsClient = new WsConnection();
         createStandardDate();
 
         if (isHost) {

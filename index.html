@@ -463,16 +463,11 @@
                 diffTime = msg.message.diffTime ?? 0;
                 break;
 
-              // case eventType.SET_HOST_URL:
-              //   hostUrl = msg.message.hostUrl;
-              //   console.log(`hostUrl`, hostUrl);
-              //   localStorage.setItem("hostUrl", hostUrl);
-              //   createStandardDate();
-
-              //   document.getElementById(
-              //     "test"
-              //   ).innerText = `host url: ${hostUrl}`;
-              //   break;
+              case eventType.SET_HOST_URL:
+                hostUrl = msg.message.hostUrl;
+                localStorage.setItem("hostUrl", hostUrl);
+                wsClient.connect();
+                break;
 
               case eventType.SYNC_HOST_TIMESTAMP:
                 const hostTimestamp = msg.message.hostTimestamp;

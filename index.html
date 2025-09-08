@@ -196,7 +196,6 @@
           );
         }
       }
-      const wsClient = new WsConnection();
 
       class StandardDate {
         serverTimestamp;
@@ -289,6 +288,7 @@
 
       function init() {
         hostUrl = localStorage.getItem("hostUrl");
+        const wsClient = new WsConnection();
         createStandardDate();
 
         if (isHost) {

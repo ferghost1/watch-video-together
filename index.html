@@ -307,6 +307,8 @@
           document.getElementById("link-video").value =
             localStorage.getItem("linkVideo") ||
             "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+          document.getElementById("link-sync").value =
+            localStorage.getItem("linkSync") ?? "";
           document.getElementById("diff-time").value =
             localStorage.getItem("diffTime") || 1000;
           document.getElementById("host-url").value = hostUrl;
@@ -370,6 +372,7 @@
       function handleSyncVideo() {
         const videoSrc = document.getElementById("link-sync").value;
         emitSetDiffTime();
+        localStorage.setItem("linkSync", pubKey);
 
         pubnub.publish({
           channel: channel,

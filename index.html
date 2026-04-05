@@ -372,7 +372,7 @@
       function handleSyncVideo() {
         const videoSrc = document.getElementById("link-sync").value;
         emitSetDiffTime();
-        localStorage.setItem("linkSync", pubKey);
+        localStorage.setItem("linkSync", videoSrc);
 
         pubnub.publish({
           channel: channel,

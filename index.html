@@ -23,6 +23,9 @@
         Link film <input type="text" id="link-video" style="width: 500px" />
       </div>
       <div>
+        Link sync <input type="text" id="link-sync" style="width: 500px" />
+      </div>
+      <div>
         <label for="addtional-time">Additional time with host</label>
         <input id="addtional-time" value="0" step="0.5" type="number" />
         <button id="test-delay" onclick="testDelay()">Test Delay</button>
@@ -138,7 +141,7 @@
         async connect() {
           this.wsConn = new WebSocket(
             hostUrl?.replace("https", "wss") ||
-              "wss://wbxpc2b1-8889.asse.devtunnels.ms"
+              "wss://wbxpc2b1-8889.asse.devtunnels.ms",
           );
 
           // retry until success
@@ -192,7 +195,7 @@
           }
 
           this.wsConn.send(
-            JSON.stringify({ type: this.wsAction.SYNC_SERVER_TIMESTAMP })
+            JSON.stringify({ type: this.wsAction.SYNC_SERVER_TIMESTAMP }),
           );
         }
       }
@@ -365,9 +368,8 @@
       }
 
       function handleSyncVideo() {
-        const videoSrc = document.getElementById("link-video").value;
+        const videoSrc = document.getElementById("link-sync").value;
         emitSetDiffTime();
-        // emitSyncServerTimestamp();
 
         pubnub.publish({
           channel: channel,

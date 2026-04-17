@@ -435,7 +435,7 @@
 
             const sendingTime =
               StandardDate.calculateSendingTime(hostLocalTimestamp);
-            const shouldPlayingTime = hostPlayingTime + sendingTime;
+            const shouldPlayingTime = hostPlayingTime + sendingTime / 1000;
 
             switch (msg.message.type) {
               case eventType.TEST_DELAY:

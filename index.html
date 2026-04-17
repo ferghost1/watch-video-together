@@ -210,6 +210,9 @@
           const sendingTime = currentHostTime - hostTime;
           document.getElementById("request-time").innerText = sendingTime;
 
+          console.log(`hostTime`, hostTime);
+          console.log(`diffTime`, diffTime);
+          console.log(`sendingTime`, sendingTime);
           return sendingTime;
         }
 
@@ -452,7 +455,7 @@
                 }
 
                 video.currentTime = shouldPlayingTime;
-                video.play().then((res) => console.log(`res`, res));
+                video.play();
                 break;
 
               case eventType.SEEK:
@@ -553,9 +556,7 @@
         }
 
         video.onplay = function () {
-          const playingTime =
-            video.currentTime +
-            Number(document.getElementById("addtional-time").value || 0);
+          const playingTime = video.currentTime;
 
           pubnub.publish({
             channel,

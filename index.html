@@ -59,13 +59,13 @@
         Sync Video
       </button>
 
-      <button
+      <!-- <button
         id="sync-timestamp"
         onclick="emitSyncServerTimestamp()"
         type="button"
       >
         Sync timestamp
-      </button>
+      </button> -->
     </div>
 
     <div id="subscriber-inputs" class="container">
@@ -205,6 +205,14 @@
         localGreaterThanStandardInMs;
         isUseLocal;
 
+        static calculateSendingTime(hostTime) {
+          const currentHostTime = Date.now() + diffTime;
+          const sendingTime = currentHostTime - hostTime;
+          document.getElementById("request-time").innerText = sendingTime;
+
+          return sendingTime;
+        }
+
         constructor({ serverTimestamp, isUseLocal }) {
           this.serverTimestamp = serverTimestamp;
           this.isUseLocal = isUseLocal;
@@ -292,7 +300,7 @@
 
       function init() {
         hostUrl = localStorage.getItem("hostUrl");
-        wsClient = new WsConnection();
+        // wsClient = new WsConnection();
         createStandardDate();
 
         if (isHost) {
@@ -310,13 +318,14 @@
           document.getElementById("link-sync").value =
             localStorage.getItem("linkSync") ?? "";
           document.getElementById("diff-time").value =
-            localStorage.getItem("diffTime") || 1000;
+            localStorage.getItem("diffTime") || 0;
           document.getElementById("host-url").value = hostUrl;
 
           document.getElementById("subscriber-inputs").remove();
         } else {
           // for client
           document.getElementById("host-inputs").remove();
+          diffTime = localStorage.getItem("diffTime") || 0;
         }
       }
 
@@ -421,7 +430,9 @@
                 hostStandardTimestamp) /
               1000;
 
-            const shouldPlayingTime = hostPlayingTime + (transferedTime || 0);
+            const sendingTime =
+              StandardDate.calculateSendingTime(hostLocalTimestamp);
+            const shouldPlayingTime = hostPlayingTime + sendingTime;
 
             switch (msg.message.type) {
               case eventType.TEST_DELAY:
@@ -466,7 +477,8 @@
                 break;
 
               case eventType.SET_DIFF_TIME:
-                diffTime = msg.message.diffTime ?? 0;
+                diffTime = Number(msg.message.diffTime) ?? 0;
+                localStorage.setItem("diffTime", diffTime);
                 break;
 
               case eventType.SET_HOST_URL:

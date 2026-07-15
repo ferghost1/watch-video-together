@@ -58,7 +58,7 @@
       <button id="sync-video" onclick="handleSyncVideo()" type="button">
         Sync Video
       </button>
-
+      <input type="file" id="video-picker" accept="video/*" />
       <!-- <button
         id="sync-timestamp"
         onclick="emitSyncServerTimestamp()"
@@ -302,6 +302,25 @@
       }
 
       function init() {
+        document
+          .getElementById("video-picker")
+          .addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            const videoPlayer = document.getElementById("video");
+            if (!file) return;
+
+            // Optional: Revoke the old object URL to prevent memory leaks if the user selects multiple files in one session
+            if (videoPlayer.src && videoPlayer.src.startsWith("blob:")) {
+              URL.revokeObjectURL(videoPlayer.src);
+            }
+
+            // Generate the internal blob URL mapping to the local file
+            const objectUrl = URL.createObjectURL(file);
+
+            // Assign to the video tag
+            videoPlayer.src = objectUrl;
+          });
+
         hostUrl = localStorage.getItem("hostUrl");
         // wsClient = new WsConnection();
         createStandardDate();
